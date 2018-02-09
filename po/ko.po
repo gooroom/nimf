@@ -38,7 +38,7 @@ msgstr "표시기를 시작합니다"
 #: ../modules/clients/gtk/im-nimf.c:564
 #: ../modules/services/indicator/nimf-indicator.c:106
 msgid "Nimf"
-msgstr "님프"
+msgstr "입력기(님프)"
 
 #: ../modules/engines/nimf-rime/nimf-rime.c:399
 msgid "Rime"
@@ -97,11 +97,11 @@ msgstr "여기를 클릭한 후 키 조합을 누르세요"
 
 #: ../settings/nimf-settings.c:807
 msgid "Nimf Settings"
-msgstr "님프 설정"
+msgstr "입력기 설정"
 
 #: ../libnimf/org.nimf.gschema.xml.h:1
 msgid "'Nimf'"
-msgstr "'님프'"
+msgstr "'기본 설정'"
 
 #: ../libnimf/org.nimf.gschema.xml.h:2
 #: ../modules/clients/gtk/org.nimf.clients.gtk.gschema.xml.h:2
