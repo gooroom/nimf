@@ -1,3 +1,13 @@
+nimf (2018.01.30+grm1u1) stable; urgency=medium
+
+  [ jongkyung.woo ]
+  * [d706baea] Added start-indicator option at 23_nimf.rc
+  * [13ab8a86] Modified Korean translations for nimf
+
+  [ Gooroom Autobuilder ]
+
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Wed, 14 Mar 2018 17:45:49 +0900
+
 nimf (2018.01.30) stable; urgency=medium
 
   * Removed Japanese Keyboard (OADG 109A)
