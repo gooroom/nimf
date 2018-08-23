@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(nimf, 2018.01.30)
+AC_INIT(nimf, 2018.08.21)
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -16,21 +16,16 @@ AC_PROG_CXX
 
 AS_IF([test "$CXX" = "g++"],
       [AS_IF([test "$GXX" != "yes"],
-	     AC_MSG_ERROR([C++ compiler is not found.]))])
+      AC_MSG_ERROR([C++ compiler is not found.]))])
 
-dnl ***************************************************************************
-dnl Libtool Versioning
-dnl ***************************************************************************
-# Before making a release, the LT_VERSION string should be modified.
-# The string is of the form C:R:A.
-# - If interfaces have been changed or added, but binary compatibility has
-#   been preserved, change to C+1:0:A+1
-# - If binary compatibility has been broken (eg removed or changed interfaces)
-#   change to C+1:0:0
-# - If the interface is the same as the previous version, change to C:R+1:A
+AC_ARG_ENABLE([hardening],
+  AS_HELP_STRING([--disable-hardening], [Disable hardening]))
 
-LIBNIMF_LT_VERSION=0:0:0
-AC_SUBST(LIBNIMF_LT_VERSION)
+AS_IF([test "x$enable_hardening" != "xno"],
+      [EXTRA_CFLAGS="-Wall -Werror -D_FORTIFY_SOURCE=2"],
+      [EXTRA_CFLAGS="-Wall -Werror"])
+
+AC_SUBST(EXTRA_CFLAGS)
 
 dnl ***************************************************************************
 dnl Internationalization
@@ -45,9 +40,22 @@ AM_GLIB_DEFINE_LOCALEDIR(NIMF_LOCALE_DIR)
 
 LT_INIT([disable-static])
 
-LIBNIMF_REQUIRES="glib-2.0 gio-2.0 gio-unix-2.0 gmodule-2.0 audit"
-AC_SUBST(LIBNIMF_REQUIRES)
+dnl ***************************************************************************
+dnl libnimf
+dnl ***************************************************************************
+# Before making a release, the LT_VERSION string should be modified.
+# The string is of the form C:R:A.
+# - If interfaces have been changed or added, but binary compatibility has
+#   been preserved, change to C+1:0:A+1
+# - If binary compatibility has been broken (eg removed or changed interfaces)
+#   change to C+1:0:0
+# - If the interface is the same as the previous version, change to C:R+1:A
 
+LIBNIMF_LT_VERSION=0:0:0
+AC_SUBST(LIBNIMF_LT_VERSION)
+
+LIBNIMF_REQUIRES="glib-2.0 gio-2.0 gio-unix-2.0 gmodule-2.0"
+AC_SUBST(LIBNIMF_REQUIRES)
 PKG_CHECK_MODULES(LIBNIMF_DEPS, [$LIBNIMF_REQUIRES])
 
 dnl ***************************************************************************
@@ -59,29 +67,6 @@ PKG_CHECK_MODULES(NIMF_LIBHANGUL_DEPS, [libhangul >= 0.0.12 $LIBNIMF_REQUIRES])
 PKG_CHECK_MODULES(NIMF_RIME_DEPS, [rime >= 1.2.9 $LIBNIMF_REQUIRES])
 PKG_CHECK_MODULES(NIMF_SYSTEM_KEYBOARD_DEPS,
                   [xkbcommon >= 0.5.0 $LIBNIMF_REQUIRES])
-
-dnl ***************************************************************************
-dnl nimf-sunpinyin
-dnl ***************************************************************************
-
-PKG_CHECK_MODULES(NIMF_SUNPINYIN_DEPS, [sunpinyin-2.0 $LIBNIMF_REQUIRES])
-
-dnl Check sunpinyin-data for Debian-like distributions
-
-SUNPINYIN_DATA_DIR=`pkg-config --variable=libdir sunpinyin-2.0`/sunpinyin/data
-
-AC_CHECK_FILES(
-   [$SUNPINYIN_DATA_DIR/lm_sc.t3g
-    $SUNPINYIN_DATA_DIR/pydict_sc.bin], [], HAVE_SUNPINYIN_DATA="no")
-
-dnl Check sunpinyin-data for Arch Linux, Fedora
-
-if test "x$HAVE_SUNPINYIN_DATA" = "xno"; then
-  AC_CHECK_FILES(
-     [/usr/share/sunpinyin/lm_sc.t3g
-      /usr/share/sunpinyin/pydict_sc.bin], [],
-      AC_MSG_ERROR([sunpinyin-data files are not found.]))
-fi
 
 dnl ***************************************************************************
 dnl nimf-anthy
@@ -209,10 +194,10 @@ dnl ***************************************************************************
 PKG_CHECK_MODULES(NIMF_XIM_DEPS, [$LIBNIMF_REQUIRES] x11)
 
 dnl ***************************************************************************
-dnl nimf-daemon
+dnl nimf server
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_DAEMON_DEPS, [glib-2.0 gio-unix-2.0 gobject-2.0 audit])
+PKG_CHECK_MODULES(NIMF_DEPS, [glib-2.0 gio-unix-2.0 gobject-2.0 gmodule-2.0])
 
 dnl ***************************************************************************
 dnl nimf-indicator
@@ -245,17 +230,35 @@ AM_CONDITIONAL([WITH_IM_CONFIG_DATA],
                [test "$with_im_config_data" = "yes"])
 
 dnl ***************************************************************************
+dnl imsettings data
+dnl ***************************************************************************
+
+AC_ARG_WITH([imsettings-data],
+  AS_HELP_STRING([--with-imsettings-data], [Install imsettings data]),
+  [with_imsettings_data=yes])
+
+AM_CONDITIONAL([WITH_IMSETTINGS_DATA],
+               [test "$with_imsettings_data" = "yes"])
+
+dnl ***************************************************************************
+dnl test-nimf
+dnl ***************************************************************************
+
+PKG_CHECK_MODULES(TEST_NIMF_DEPS, [glib-2.0])
+
+dnl ***************************************************************************
 
 GLIB_GSETTINGS
 
 AC_OUTPUT([
   Makefile
-  daemon/Makefile
+  bin/Makefile
   data/Makefile
   data/apparmor-abstractions/Makefile
   data/autostart/Makefile
   data/icons/Makefile
   data/im-config/Makefile
+  data/imsettings/Makefile
   libnimf/Makefile
   libnimf/nimf.pc
   modules/Makefile
@@ -268,7 +271,6 @@ AC_OUTPUT([
   modules/engines/nimf-chewing/Makefile
   modules/engines/nimf-libhangul/Makefile
   modules/engines/nimf-rime/Makefile
-  modules/engines/nimf-sunpinyin/Makefile
   modules/engines/nimf-system-keyboard/Makefile
   modules/services/Makefile
   modules/services/candidate/Makefile
@@ -276,6 +278,6 @@ AC_OUTPUT([
   modules/services/preedit-window/Makefile
   modules/services/wayland/Makefile
   modules/services/xim/Makefile
+  tests/Makefile
   po/Makefile.in
-  settings/Makefile
 ])

@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nimf\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-01-30 03:21+0900\n"
-"PO-Revision-Date: 2018-01-30 03:23+0900\n"
+"POT-Creation-Date: 2018-08-21 23:18+0900\n"
+"PO-Revision-Date: 2018-08-21 23:20+0900\n"
 "Last-Translator: Hodong Kim <cogniti@gmail.com>\n"
 "Language-Team: German\n"
 "Language: de\n"
@@ -19,24 +19,45 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../daemon/nimf-daemon.c:91
-msgid "Do not daemonize"
-msgstr "Nicht als Daemon starten"
-
-#: ../daemon/nimf-daemon.c:92
+#: ../bin/nimf.c:594
 msgid "Log debugging message"
 msgstr "Debug Nachrichten protokollieren"
 
-#: ../daemon/nimf-daemon.c:93
+#: ../bin/nimf.c:595
 msgid "Version"
 msgstr ""
 
-#: ../daemon/nimf-daemon.c:94
+#: ../bin/nimf.c:596
 msgid "Start indicator"
 msgstr "Starte einen Indikator"
 
+#: ../bin/nimf-settings.c:458
+#, c-format
+msgid "Please report a bug. (keyval: %d)"
+msgstr "Bitte melden Sie einen Fehler (keyval: %d)"
+
+#: ../bin/nimf-settings.c:519
+msgid "Press key combination"
+msgstr "Tastenkombination drücken"
+
+#: ../bin/nimf-settings.c:522
+msgid "_OK"
+msgstr "Bestätigen (_O)"
+
+#: ../bin/nimf-settings.c:523
+msgid "_Cancel"
+msgstr "Abbrechen (_C)"
+
+#: ../bin/nimf-settings.c:535
+msgid "Click here and then press key combination"
+msgstr "Hier klicken und dann Tastenkombination drücken"
+
+#: ../bin/nimf-settings.c:804
+msgid "Nimf Settings"
+msgstr "Nimf Einstellungen"
+
 #. ID
-#: ../modules/clients/gtk/im-nimf.c:564
+#: ../modules/clients/gtk/im-nimf.c:565
 #: ../modules/services/indicator/nimf-indicator.c:106
 msgid "Nimf"
 msgstr ""
@@ -51,54 +72,33 @@ msgstr ""
 msgid "Hodong Kim <cogniti@gmail.com>"
 msgstr ""
 
-#: ../modules/services/indicator/nimf-indicator.c:101
+#: ../modules/services/indicator/nimf-indicator.c:91
+msgid "Bumsik Kim <k.bumsik@gmail.com>"
+msgstr ""
+
+#: ../modules/services/indicator/nimf-indicator.c:102
 msgid "Nimf is an input method framework"
 msgstr "Nimf ist eine Texteingabemethode"
 
-#: ../modules/services/indicator/nimf-indicator.c:102
+#: ../modules/services/indicator/nimf-indicator.c:103
 msgid "Copyright (c) 2015-2018 Hodong Kim"
 msgstr ""
 
-#: ../modules/services/indicator/nimf-indicator.c:107
+#: ../modules/services/indicator/nimf-indicator.c:108
 msgid "Hodong Kim, N"
 msgstr ""
 
-#: ../modules/services/indicator/nimf-indicator.c:110
+#: ../modules/services/indicator/nimf-indicator.c:111
 msgid "Website"
 msgstr ""
 
-#: ../modules/services/indicator/nimf-indicator.c:237
+#: ../modules/services/indicator/nimf-indicator.c:238
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: ../modules/services/indicator/nimf-indicator.c:238
+#: ../modules/services/indicator/nimf-indicator.c:239
 msgid "About"
 msgstr "Über"
-
-#: ../settings/nimf-settings.c:458
-#, c-format
-msgid "Please report a bug. (keyval: %d)"
-msgstr "Bitte melden Sie einen Fehler (keyval: %d)"
-
-#: ../settings/nimf-settings.c:519
-msgid "Press key combination"
-msgstr "Tastenkombination drücken"
-
-#: ../settings/nimf-settings.c:522
-msgid "_OK"
-msgstr "Bestätigen (_O)"
-
-#: ../settings/nimf-settings.c:523
-msgid "_Cancel"
-msgstr "Abbrechen (_C)"
-
-#: ../settings/nimf-settings.c:535
-msgid "Click here and then press key combination"
-msgstr "Hier klicken und dann Tastenkombination drücken"
-
-#: ../settings/nimf-settings.c:807
-msgid "Nimf Settings"
-msgstr "Nimf Einstellungen"
 
 #: ../libnimf/org.nimf.gschema.xml.h:1
 msgid "'Nimf'"
@@ -111,7 +111,6 @@ msgstr ""
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:2
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:2
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:2
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:2
 #: ../modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml.h:2
 #: ../modules/services/xim/org.nimf.services.xim.gschema.xml.h:2
 msgid "schema name for nimf-settings"
@@ -124,7 +123,6 @@ msgstr "nimf-settings Schema name"
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:3
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:3
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:3
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:3
 #: ../modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml.h:3
 #: ../modules/services/xim/org.nimf.services.xim.gschema.xml.h:3
 msgid "This key is intended for nimf-settings."
@@ -195,7 +193,6 @@ msgstr "'Japanisch (Anthy)'"
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:4
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:4
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:4
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:4
 msgid "Active engine"
 msgstr "Aktive Engine"
 
@@ -203,7 +200,6 @@ msgstr "Aktive Engine"
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:5
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:5
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:5
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:5
 msgid "The engine will be loaded on startup if available. Restart required"
 msgstr ""
 "Die Engine wird, wenn vorhanden, beim Start geladen. Neustart erforderlich"
@@ -245,13 +241,28 @@ msgstr "Schlüsselwert für UI l10n"
 msgid "'Kana input on the English Keyboard (pc104)'"
 msgstr "'Kana-Eingang auf der englischen Tastatur (pc104)'"
 
+#: ../modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml.h:15
+msgid "n input mode"
+msgstr "n Eingabemodus"
+
+#: ../modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml.h:16
+msgid "Choose how you type hiragana letter n."
+msgstr "Wählen Sie, wie Sie den Hiragana-Buchstaben n eingeben."
+
+#: ../modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml.h:17
+msgid "'Common practice'"
+msgstr "'Gang und gäbe sein'"
+
+#: ../modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml.h:18
+msgid "'Explicitly type nn'"
+msgstr "'Typ Explizit nn'"
+
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:1
 msgid "'Chinese (chewing)'"
 msgstr "'Chinesisch (chewing)'"
 
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:6
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:6
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:6
 msgid "Trigger keys for switching Chinese / System"
 msgstr "Auslösertasten um Chinesisch / System umzuschalten"
 
@@ -334,8 +345,6 @@ msgstr "Ignoriere reset() in commit Rückmeldung"
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:25
 msgid "Ignore reset() called by commit callback in application"
 msgstr ""
-"Ignoriere reset(), welches von commit Rückmeldung einer Anwendung aufgerufen "
-"wurde"
 
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:1
 msgid "'Chinese (rime)'"
@@ -352,10 +361,6 @@ msgid ""
 msgstr ""
 "Wenn vereinfachtes Chinesisch gesetzt ist, wird vereinfachtes Chinesisch "
 "verwendet. Ansonsten wird traditionelles Chinesisch verwendet."
-
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:1
-msgid "'Chinese (sunpinyin)'"
-msgstr "'Chinesisch (sunpinyin)'"
 
 #: ../modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml.h:1
 msgid "'System Keyboard'"

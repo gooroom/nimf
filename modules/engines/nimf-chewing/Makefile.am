@@ -6,8 +6,10 @@ gsettings_SCHEMAS = org.nimf.engines.nimf-chewing.gschema.xml
 
 libnimf_chewing_la_SOURCES = nimf-chewing.c
 libnimf_chewing_la_CFLAGS  = \
-	-Wall -Werror \
+	$(EXTRA_CFLAGS) \
 	-I$(top_srcdir)/libnimf \
+	-I$(top_srcdir)/libnimf/client \
+	-I$(top_srcdir)/libnimf/server \
 	-DG_LOG_DOMAIN=\"nimf\" \
 	$(NIMF_CHEWING_DEPS_CFLAGS)
 

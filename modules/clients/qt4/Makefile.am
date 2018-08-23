@@ -8,10 +8,11 @@ BUILT_SOURCES = im-nimf-qt4.moc
 libqt4im_nimf_la_SOURCES = im-nimf-qt4.cpp $(BUILT_SOURCES)
 
 libqt4im_nimf_la_CXXFLAGS = \
-	-Wall \
-	-Werror \
+	$(EXTRA_CFLAGS) \
 	$(LIBNIMF_DEPS_CFLAGS) \
 	-I$(top_srcdir)/libnimf \
+	-I$(top_srcdir)/libnimf/client \
+	-I$(top_srcdir)/libnimf/server \
 	-DG_LOG_DOMAIN=\"nimf\" \
 	$(NIMF_QT4_DEPS_CFLAGS) \
 	-DQT_NO_KEYWORDS

@@ -42,8 +42,7 @@ G_BEGIN_DECLS
 #define NIMF_IS_SERVER_CLASS(class)  (G_TYPE_CHECK_CLASS_TYPE ((class), NIMF_TYPE_SERVER))
 #define NIMF_SERVER_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS ((obj), NIMF_TYPE_SERVER, NimfServerClass))
 
-typedef struct _NimfEngine       NimfEngine;
-typedef struct _NimfCandidatable NimfCandidatable;
+typedef struct _NimfEngine      NimfEngine;
 
 typedef struct _NimfServer      NimfServer;
 typedef struct _NimfServerClass NimfServerClass;
@@ -55,12 +54,11 @@ struct _NimfServer
   GHashTable      *modules;
   GHashTable      *services;
   GList           *instances;
-  GSocketListener *listener;
+  GSocketService  *service;
   GHashTable      *connections;
-  gchar           *address;
+  gchar           *path;
   guint16          next_id;
   gboolean         active;
-  gulong           run_signal_handler_id;
   /* settings */
   GSettings       *settings;
   NimfKey        **hotkeys;
@@ -88,11 +86,6 @@ struct _NimfServerClass
 };
 
 GType       nimf_server_get_type              (void) G_GNUC_CONST;
-NimfServer *nimf_server_new                   (const gchar  *address,
-                                               GError      **error);
-void        nimf_server_start                 (NimfServer   *server,
-                                               gboolean      start_indicator);
-void        nimf_server_stop                  (NimfServer   *server);
 NimfEngine *nimf_server_get_default_engine    (NimfServer   *server);
 NimfEngine *nimf_server_get_next_instance     (NimfServer   *server,
                                                NimfEngine   *engine);

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nimf\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-01-30 03:21+0900\n"
-"PO-Revision-Date: 2018-01-30 03:24+0900\n"
+"POT-Creation-Date: 2018-08-21 23:18+0900\n"
+"PO-Revision-Date: 2018-08-21 23:21+0900\n"
 "Last-Translator: Hodong Kim <cogniti@gmail.com>\n"
 "Language-Team: Hodong Kim <cogniti@gmail.com>\n"
 "Language: ko\n"
@@ -18,25 +18,46 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: ../daemon/nimf-daemon.c:91
-msgid "Do not daemonize"
-msgstr "데몬화하지 않습니다"
-
-#: ../daemon/nimf-daemon.c:92
+#: ../bin/nimf.c:594
 msgid "Log debugging message"
 msgstr "디버깅 메시지를 기록합니다"
 
-#: ../daemon/nimf-daemon.c:93
+#: ../bin/nimf.c:595
 msgid "Version"
 msgstr "버전"
 
-#: ../daemon/nimf-daemon.c:94
+#: ../bin/nimf.c:596
 msgid "Start indicator"
 msgstr "표시기를 시작합니다"
 
+#: ../bin/nimf-settings.c:458
+#, c-format
+msgid "Please report a bug. (keyval: %d)"
+msgstr "버그를 제보해 주세요. (keyval: %d)"
+
+#: ../bin/nimf-settings.c:519
+msgid "Press key combination"
+msgstr "키 조합을 누르세요"
+
+#: ../bin/nimf-settings.c:522
+msgid "_OK"
+msgstr "예 (_O)"
+
+#: ../bin/nimf-settings.c:523
+msgid "_Cancel"
+msgstr "취소 (_C)"
+
+#: ../bin/nimf-settings.c:535
+msgid "Click here and then press key combination"
+msgstr "여기를 클릭한 후 키 조합을 누르세요"
+
+#: ../bin/nimf-settings.c:804
+msgid "Nimf Settings"
+msgstr "입력기 설정"
+
 #. ID
-#: ../modules/clients/gtk/im-nimf.c:564
-#: ../modules/services/indicator/nimf-indicator.c:106
+#: ../modules/clients/gtk/im-nimf.c:565
+#: ../modules/services/indicator/nimf-indicator.c:107
 msgid "Nimf"
 msgstr "입력기(님프)"
 
@@ -50,54 +71,33 @@ msgstr "라임"
 msgid "Hodong Kim <cogniti@gmail.com>"
 msgstr "김호동 <cogniti@gmail.com>"
 
-#: ../modules/services/indicator/nimf-indicator.c:101
+#: ../modules/services/indicator/nimf-indicator.c:91
+msgid "Bumsik Kim <k.bumsik@gmail.com>"
+msgstr "김범식 <k.bumsik@gmail.com>"
+
+#: ../modules/services/indicator/nimf-indicator.c:102
 msgid "Nimf is an input method framework"
 msgstr "님프는 입력 방법 프레임워크입니다"
 
-#: ../modules/services/indicator/nimf-indicator.c:102
+#: ../modules/services/indicator/nimf-indicator.c:103
 msgid "Copyright (c) 2015-2018 Hodong Kim"
 msgstr "저작권 (c) 2015-2018 김호동"
 
-#: ../modules/services/indicator/nimf-indicator.c:107
+#: ../modules/services/indicator/nimf-indicator.c:108
 msgid "Hodong Kim, N"
 msgstr "김호동, N"
 
-#: ../modules/services/indicator/nimf-indicator.c:110
+#: ../modules/services/indicator/nimf-indicator.c:111
 msgid "Website"
 msgstr "웹사이트"
 
-#: ../modules/services/indicator/nimf-indicator.c:237
+#: ../modules/services/indicator/nimf-indicator.c:238
 msgid "Settings"
 msgstr "설정"
 
-#: ../modules/services/indicator/nimf-indicator.c:238
+#: ../modules/services/indicator/nimf-indicator.c:239
 msgid "About"
 msgstr "정보"
-
-#: ../settings/nimf-settings.c:458
-#, c-format
-msgid "Please report a bug. (keyval: %d)"
-msgstr "버그를 제보해 주세요. (keyval: %d)"
-
-#: ../settings/nimf-settings.c:519
-msgid "Press key combination"
-msgstr "키 조합을 누르세요"
-
-#: ../settings/nimf-settings.c:522
-msgid "_OK"
-msgstr "예 (_O)"
-
-#: ../settings/nimf-settings.c:523
-msgid "_Cancel"
-msgstr "취소 (_C)"
-
-#: ../settings/nimf-settings.c:535
-msgid "Click here and then press key combination"
-msgstr "여기를 클릭한 후 키 조합을 누르세요"
-
-#: ../settings/nimf-settings.c:807
-msgid "Nimf Settings"
-msgstr "입력기 설정"
 
 #: ../libnimf/org.nimf.gschema.xml.h:1
 msgid "'Nimf'"
@@ -110,7 +110,6 @@ msgstr "'기본 설정'"
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:2
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:2
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:2
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:2
 #: ../modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml.h:2
 #: ../modules/services/xim/org.nimf.services.xim.gschema.xml.h:2
 msgid "schema name for nimf-settings"
@@ -123,7 +122,6 @@ msgstr "nimf-settings 를 위한 스키마 이름"
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:3
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:3
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:3
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:3
 #: ../modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml.h:3
 #: ../modules/services/xim/org.nimf.services.xim.gschema.xml.h:3
 msgid "This key is intended for nimf-settings."
@@ -193,7 +191,6 @@ msgstr "'일본어 (anthy)'"
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:4
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:4
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:4
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:4
 msgid "Active engine"
 msgstr "엔진 활성화"
 
@@ -201,7 +198,6 @@ msgstr "엔진 활성화"
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:5
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:5
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:5
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:5
 msgid "The engine will be loaded on startup if available. Restart required"
 msgstr "만약 가능하다면 이 엔진은 시작할 때 로드될 것입니다. 재시작이 필요합니다."
 
@@ -242,13 +238,28 @@ msgstr "UI l10n 을 위한 키 값"
 msgid "'Kana input on the English Keyboard (pc104)'"
 msgstr "'영문 키보드로 가나 입력 (pc104)'"
 
+#: ../modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml.h:15
+msgid "n input mode"
+msgstr "n 입력 모드"
+
+#: ../modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml.h:16
+msgid "Choose how you type hiragana letter n."
+msgstr "히라가나 문자 n을 입력하는 방법을 선택하세요."
+
+#: ../modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml.h:17
+msgid "'Common practice'"
+msgstr "'일반적인 관행'"
+
+#: ../modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml.h:18
+msgid "'Explicitly type nn'"
+msgstr "'명시적으로 nn을 누릅니다'"
+
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:1
 msgid "'Chinese (chewing)'"
 msgstr "'중국어 (chewing)'"
 
 #: ../modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml.h:6
 #: ../modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml.h:6
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:6
 msgid "Trigger keys for switching Chinese / System"
 msgstr "중국어 / 시스템 전환을 위한 작동 키"
 
@@ -347,10 +358,6 @@ msgid ""
 msgstr ""
 "중국어 간체가 설정되면 중국어 간체가 사용됩니다. 그렇지 않으면 중국어 번체가 "
 "사용됩니다."
-
-#: ../modules/engines/nimf-sunpinyin/org.nimf.engines.nimf-sunpinyin.gschema.xml.h:1
-msgid "'Chinese (sunpinyin)'"
-msgstr "'중국어 (sunpinyin)'"
 
 #: ../modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml.h:1
 msgid "'System Keyboard'"

@@ -16,8 +16,10 @@ libnimf_wayland_la_SOURCES = \
 	$(NULL)
 
 libnimf_wayland_la_CFLAGS = \
-	-Wall -Werror \
+	$(EXTRA_CFLAGS) \
 	-I$(top_srcdir)/libnimf \
+	-I$(top_srcdir)/libnimf/client \
+	-I$(top_srcdir)/libnimf/server \
 	-DG_LOG_DOMAIN=\"nimf\" \
 	$(NIMF_WAYLAND_DEPS_CFLAGS)
 

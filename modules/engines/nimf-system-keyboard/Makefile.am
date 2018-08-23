@@ -6,8 +6,10 @@ gsettings_SCHEMAS = org.nimf.engines.nimf-system-keyboard.gschema.xml
 
 libnimf_system_keyboard_la_SOURCES = nimf-system-keyboard.c
 libnimf_system_keyboard_la_CFLAGS  = \
-	-Wall -Werror \
+	$(EXTRA_CFLAGS) \
 	-I$(top_srcdir)/libnimf \
+	-I$(top_srcdir)/libnimf/client \
+	-I$(top_srcdir)/libnimf/server \
 	-DG_LOG_DOMAIN=\"nimf\" \
 	$(NIMF_SYSTEM_KEYBOARD_DEPS_CFLAGS)
 

@@ -3,7 +3,7 @@
  * nimf-im.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2015-2017 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -20,14 +20,10 @@
  */
 
 #include "nimf-im.h"
-#include "nimf-events.h"
-#include "nimf-types.h"
-#include "nimf-key-syms.h"
+#include <string.h>
 #include "nimf-marshalers.h"
-#include <gio/gunixsocketaddress.h>
 #include "nimf-message.h"
 #include "nimf-private.h"
-#include <string.h>
 
 enum {
   PREEDIT_START,
@@ -41,9 +37,9 @@ enum {
 };
 
 static guint im_signals[LAST_SIGNAL] = { 0 };
-extern GMainContext      *nimf_client_socket_context;
-extern NimfResult        *nimf_client_result;
-extern GSocketConnection *nimf_client_connection;
+extern GMainContext *nimf_client_context;
+extern NimfResult   *nimf_client_result;
+extern GSocket      *nimf_client_socket;
 
 G_DEFINE_TYPE (NimfIM, nimf_im, NIMF_TYPE_CLIENT);
 
@@ -52,19 +48,13 @@ void nimf_im_focus_out (NimfIM *im)
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   g_return_if_fail (NIMF_IS_IM (im));
+  g_return_if_fail (nimf_client_is_connected ());
 
   NimfClient *client = NIMF_CLIENT (im);
 
-  GSocket *socket = g_socket_connection_get_socket (nimf_client_connection);
-  if (!socket || g_socket_is_closed (socket))
-  {
-    g_warning ("socket is closed");
-    return;
-  }
-
-  nimf_send_message (socket, client->id, NIMF_MESSAGE_FOCUS_OUT,
+  nimf_send_message (nimf_client_socket, client->id, NIMF_MESSAGE_FOCUS_OUT,
                      NULL, 0, NULL);
-  nimf_result_iteration_until (nimf_client_result, nimf_client_socket_context,
+  nimf_result_iteration_until (nimf_client_result, nimf_client_context,
                                client->id, NIMF_MESSAGE_FOCUS_OUT_REPLY);
 }
 
@@ -74,19 +64,14 @@ void nimf_im_set_cursor_location (NimfIM              *im,
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   g_return_if_fail (NIMF_IS_IM (im));
+  g_return_if_fail (nimf_client_is_connected ());
 
   NimfClient *client = NIMF_CLIENT (im);
 
-  GSocket *socket = g_socket_connection_get_socket (nimf_client_connection);
-  if (!socket || g_socket_is_closed (socket))
-  {
-    g_warning ("socket is closed");
-    return;
-  }
-
-  nimf_send_message (socket, client->id, NIMF_MESSAGE_SET_CURSOR_LOCATION,
+  nimf_send_message (nimf_client_socket, client->id,
+                     NIMF_MESSAGE_SET_CURSOR_LOCATION,
                      (gchar *) area, sizeof (NimfRectangle), NULL);
-  nimf_result_iteration_until (nimf_client_result, nimf_client_socket_context,
+  nimf_result_iteration_until (nimf_client_result, nimf_client_context,
                                client->id, NIMF_MESSAGE_SET_CURSOR_LOCATION_REPLY);
 }
 
@@ -96,19 +81,14 @@ void nimf_im_set_use_preedit (NimfIM   *im,
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   g_return_if_fail (NIMF_IS_IM (im));
+  g_return_if_fail (nimf_client_is_connected ());
 
   NimfClient *client = NIMF_CLIENT (im);
 
-  GSocket *socket = g_socket_connection_get_socket (nimf_client_connection);
-  if (!socket || g_socket_is_closed (socket))
-  {
-    g_warning ("socket is closed");
-    return;
-  }
-
-  nimf_send_message (socket, client->id, NIMF_MESSAGE_SET_USE_PREEDIT,
+  nimf_send_message (nimf_client_socket, client->id,
+                     NIMF_MESSAGE_SET_USE_PREEDIT,
                      (gchar *) &use_preedit, sizeof (gboolean), NULL);
-  nimf_result_iteration_until (nimf_client_result, nimf_client_socket_context,
+  nimf_result_iteration_until (nimf_client_result, nimf_client_context,
                                client->id, NIMF_MESSAGE_SET_USE_PREEDIT_REPLY);
 }
 
@@ -122,8 +102,7 @@ gboolean nimf_im_get_surrounding (NimfIM  *im,
 
   NimfClient *client = NIMF_CLIENT (im);
 
-  GSocket *socket = g_socket_connection_get_socket (nimf_client_connection);
-  if (!socket || g_socket_is_closed (socket))
+  if (!nimf_client_is_connected ())
   {
     if (text)
       *text = g_strdup ("");
@@ -136,9 +115,9 @@ gboolean nimf_im_get_surrounding (NimfIM  *im,
     return FALSE;
   }
 
-  nimf_send_message (socket, client->id, NIMF_MESSAGE_GET_SURROUNDING,
+  nimf_send_message (nimf_client_socket, client->id, NIMF_MESSAGE_GET_SURROUNDING,
                      NULL, 0, NULL);
-  nimf_result_iteration_until (nimf_client_result, nimf_client_socket_context,
+  nimf_result_iteration_until (nimf_client_result, nimf_client_context,
                                client->id, NIMF_MESSAGE_GET_SURROUNDING_REPLY);
 
   if (nimf_client_result->reply == NULL)
@@ -175,15 +154,9 @@ void nimf_im_set_surrounding (NimfIM     *im,
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   g_return_if_fail (NIMF_IS_IM (im));
+  g_return_if_fail (nimf_client_is_connected ());
 
   NimfClient *client = NIMF_CLIENT (im);
-
-  GSocket *socket = g_socket_connection_get_socket (nimf_client_connection);
-  if (!socket || g_socket_is_closed (socket))
-  {
-    g_warning ("socket is closed");
-    return;
-  }
 
   gchar *data = NULL;
   gint   str_len;
@@ -199,9 +172,10 @@ void nimf_im_set_surrounding (NimfIM     *im,
   *(gint *) (data + str_len + 1) = len;
   *(gint *) (data + str_len + 1 + sizeof (gint)) = cursor_index;
 
-  nimf_send_message (socket, client->id, NIMF_MESSAGE_SET_SURROUNDING,
+  nimf_send_message (nimf_client_socket, client->id,
+                     NIMF_MESSAGE_SET_SURROUNDING,
                      data, str_len + 1 + 2 * sizeof (gint), g_free);
-  nimf_result_iteration_until (nimf_client_result, nimf_client_socket_context,
+  nimf_result_iteration_until (nimf_client_result, nimf_client_context,
                                client->id, NIMF_MESSAGE_SET_SURROUNDING_REPLY);
 }
 
@@ -210,18 +184,13 @@ void nimf_im_focus_in (NimfIM *im)
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   g_return_if_fail (NIMF_IS_IM (im));
+  g_return_if_fail (nimf_client_is_connected ());
 
   NimfClient *client = NIMF_CLIENT (im);
 
-  GSocket *socket = g_socket_connection_get_socket (nimf_client_connection);
-  if (!socket || g_socket_is_closed (socket))
-  {
-    g_warning ("socket is closed");
-    return;
-  }
-
-  nimf_send_message (socket, client->id, NIMF_MESSAGE_FOCUS_IN, NULL, 0, NULL);
-  nimf_result_iteration_until (nimf_client_result, nimf_client_socket_context,
+  nimf_send_message (nimf_client_socket, client->id, NIMF_MESSAGE_FOCUS_IN,
+                     NULL, 0, NULL);
+  nimf_result_iteration_until (nimf_client_result, nimf_client_context,
                                client->id, NIMF_MESSAGE_FOCUS_IN_REPLY);
 }
 
@@ -250,18 +219,13 @@ void nimf_im_reset (NimfIM *im)
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   g_return_if_fail (NIMF_IS_IM (im));
+  g_return_if_fail (nimf_client_is_connected ());
 
   NimfClient *client = NIMF_CLIENT (im);
 
-  GSocket *socket = g_socket_connection_get_socket (nimf_client_connection);
-  if (!socket || g_socket_is_closed (socket))
-  {
-    g_warning ("socket is closed");
-    return;
-  }
-
-  nimf_send_message (socket, client->id, NIMF_MESSAGE_RESET, NULL, 0, NULL);
-  nimf_result_iteration_until (nimf_client_result, nimf_client_socket_context,
+  nimf_send_message (nimf_client_socket, client->id, NIMF_MESSAGE_RESET,
+                     NULL, 0, NULL);
+  nimf_result_iteration_until (nimf_client_result, nimf_client_context,
                                client->id, NIMF_MESSAGE_RESET_REPLY);
 }
 
@@ -270,19 +234,13 @@ gboolean nimf_im_filter_event (NimfIM *im, NimfEvent *event)
   g_debug (G_STRLOC ":%s", G_STRFUNC);
 
   g_return_val_if_fail (NIMF_IS_IM (im), FALSE);
+  g_return_val_if_fail (nimf_client_is_connected (), FALSE);
 
   NimfClient *client = NIMF_CLIENT (im);
 
-  GSocket *socket = g_socket_connection_get_socket (nimf_client_connection);
-  if (!socket || g_socket_is_closed (socket))
-  {
-    g_warning ("socket is closed");
-    return FALSE;
-  }
-
-  nimf_send_message (socket, client->id, NIMF_MESSAGE_FILTER_EVENT,
+  nimf_send_message (nimf_client_socket, client->id, NIMF_MESSAGE_FILTER_EVENT,
                      event, sizeof (NimfEvent), NULL);
-  nimf_result_iteration_until (nimf_client_result, nimf_client_socket_context,
+  nimf_result_iteration_until (nimf_client_result, nimf_client_context,
                                client->id, NIMF_MESSAGE_FILTER_EVENT_REPLY);
 
   if (nimf_client_result->reply &&

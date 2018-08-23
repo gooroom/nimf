@@ -6,8 +6,10 @@ libnimf_indicator_la_SOURCES = \
 	$(NULL)
 
 libnimf_indicator_la_CFLAGS = \
-	-Wall -Werror \
+	$(EXTRA_CFLAGS) \
 	-I$(top_srcdir)/libnimf \
+	-I$(top_srcdir)/libnimf/client \
+	-I$(top_srcdir)/libnimf/server \
 	-DG_LOG_DOMAIN=\"nimf\" \
 	$(NIMF_INDICATOR_DEPS_CFLAGS)
 

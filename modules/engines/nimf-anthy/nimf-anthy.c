@@ -41,8 +41,8 @@ struct _NimfAnthy
 
   NimfCandidatable  *candidatable;
   GString           *preedit;
-  GString           *preedit1;
-  GString           *preedit2;
+  gint               preedit_offset; /* in bytes */
+  gint               preedit_dx;     /* in bytes */
   NimfPreeditState   preedit_state;
   NimfPreeditAttr  **preedit_attrs;
   gchar             *id;
@@ -51,6 +51,7 @@ struct _NimfAnthy
   NimfKey          **katakana_keys;
   gchar             *input_mode;
   gboolean           input_mode_changed;
+  gint               n_input_mode;
 
   anthy_context_t  context;
   gint             current_segment;
@@ -65,6 +66,12 @@ struct _NimfAnthyClass
   /*< private >*/
   NimfEngineClass parent_class;
 };
+
+typedef enum
+{
+  COMMON,
+  EXPLICIT
+} NInputMode;
 
 static gint        nimf_anthy_ref_count = 0;
 static GHashTable *nimf_anthy_romaji = NULL;;
@@ -82,7 +89,7 @@ nimf_anthy_update_preedit_state (NimfEngine    *engine,
   NimfAnthy *anthy = NIMF_ANTHY (engine);
 
   if (anthy->preedit_state == NIMF_PREEDIT_STATE_END &&
-      anthy->preedit1->len + anthy->preedit2->len > 0)
+      anthy->preedit->len > 0)
   {
     anthy->preedit_state = NIMF_PREEDIT_STATE_START;
     nimf_engine_emit_preedit_start (engine, target);
@@ -92,7 +99,7 @@ nimf_anthy_update_preedit_state (NimfEngine    *engine,
                                     anthy->preedit_attrs, cursor_pos);
 
   if (anthy->preedit_state == NIMF_PREEDIT_STATE_START &&
-      anthy->preedit1->len + anthy->preedit2->len == 0)
+      anthy->preedit->len == 0)
   {
     anthy->preedit_state = NIMF_PREEDIT_STATE_END;
     nimf_engine_emit_preedit_end (engine, target);
@@ -114,12 +121,12 @@ nimf_anthy_emit_commit (NimfEngine    *engine,
   for (i = 0; i < conv_stat.nr_segment; i++)
     anthy_commit_segment (anthy->context, i, anthy->selections[i]);
 
-  if (anthy->preedit1->len + anthy->preedit2->len > 0)
+  if (anthy->preedit->len > 0)
   {
     nimf_engine_emit_commit (engine, target, anthy->preedit->str);
     g_string_assign (anthy->preedit,  "");
-    g_string_assign (anthy->preedit1, "");
-    g_string_assign (anthy->preedit2, "");
+    anthy->preedit_offset = 0;
+    anthy->preedit_dx     = 0;
     anthy->preedit_attrs[0]->start_index = 0;
     anthy->preedit_attrs[0]->end_index   = 0;
     anthy->preedit_attrs[1]->start_index = 0;
@@ -170,8 +177,8 @@ nimf_anthy_get_current_page (NimfEngine *engine)
 }
 
 static void
-nimf_anthy_update_preedit_text (NimfEngine    *engine,
-                                NimfServiceIM *target)
+nimf_anthy_convert_preedit_text (NimfEngine    *engine,
+                                 NimfServiceIM *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -207,6 +214,26 @@ nimf_anthy_update_preedit_text (NimfEngine    *engine,
   anthy->preedit_attrs[1]->end_index = offset + current_segment_len;
   nimf_anthy_update_preedit_state (engine, target, anthy->preedit->str,
                                    g_utf8_strlen (anthy->preedit->str, -1));
+
+  anthy->preedit_offset = anthy->preedit->len;
+  anthy->preedit_dx     = 0;
+}
+
+static void
+nimf_anthy_update_preedit_text (NimfEngine    *engine,
+                                NimfServiceIM *target)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  NimfAnthy *anthy = NIMF_ANTHY (engine);
+
+  anthy->preedit_attrs[0]->start_index = 0;
+  anthy->preedit_attrs[0]->end_index   = g_utf8_strlen (anthy->preedit->str, -1);
+  anthy->preedit_attrs[1]->start_index = 0;
+  anthy->preedit_attrs[1]->end_index   = 0;
+  nimf_anthy_update_preedit_state (engine, target, anthy->preedit->str,
+    g_utf8_strlen (anthy->preedit->str,
+                   anthy->preedit_offset + anthy->preedit_dx));
 }
 
 static void
@@ -235,7 +262,8 @@ nimf_anthy_update_page (NimfEngine    *engine,
     nimf_candidatable_append (anthy->candidatable, anthy->buffer, NULL);
   }
 
-  nimf_candidatable_select_first_item_in_page (anthy->candidatable);
+  nimf_candidatable_select_item_by_index_in_page
+    (anthy->candidatable, anthy->selections[anthy->current_segment]);
   nimf_candidatable_set_page_values (anthy->candidatable, target,
                                      anthy->current_page, anthy->n_pages, 10);
 }
@@ -251,8 +279,25 @@ on_candidate_clicked (NimfEngine    *engine,
   NimfAnthy *anthy = NIMF_ANTHY (engine);
 
   anthy->selections[anthy->current_segment] = (anthy->current_page -1) * 10 + index;
-  nimf_anthy_update_preedit_text (engine, target);
+  nimf_anthy_convert_preedit_text (engine, target);
+}
+
+static void
+nimf_anthy_page_end (NimfEngine *engine, NimfServiceIM *target)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  NimfAnthy *anthy = NIMF_ANTHY (engine);
+
+  if (anthy->current_page == anthy->n_pages)
+  {
+    nimf_candidatable_select_last_item_in_page (anthy->candidatable);
+    return;
+  }
+
+  anthy->current_page = anthy->n_pages;
   nimf_anthy_update_page (engine, target);
+  nimf_candidatable_select_last_item_in_page (anthy->candidatable);
 }
 
 static gboolean
@@ -264,33 +309,13 @@ nimf_anthy_page_up (NimfEngine *engine, NimfServiceIM *target)
 
   if (anthy->current_page <= 1)
   {
-    nimf_candidatable_select_first_item_in_page (anthy->candidatable);
+    nimf_anthy_page_end (engine, target);
     return FALSE;
   }
 
   anthy->current_page--;
   nimf_anthy_update_page (engine, target);
   nimf_candidatable_select_last_item_in_page (anthy->candidatable);
-
-  return TRUE;
-}
-
-static gboolean
-nimf_anthy_page_down (NimfEngine *engine, NimfServiceIM *target)
-{
-  g_debug (G_STRLOC ": %s", G_STRFUNC);
-
-  NimfAnthy *anthy = NIMF_ANTHY (engine);
-
-  if (anthy->current_page == anthy->n_pages)
-  {
-    nimf_candidatable_select_last_item_in_page (anthy->candidatable);
-    return FALSE;
-  }
-
-  anthy->current_page++;
-  nimf_anthy_update_page (engine, target);
-  nimf_candidatable_select_first_item_in_page (anthy->candidatable);
 
   return TRUE;
 }
@@ -313,8 +338,8 @@ nimf_anthy_page_home (NimfEngine *engine, NimfServiceIM *target)
   nimf_candidatable_select_first_item_in_page (anthy->candidatable);
 }
 
-static void
-nimf_anthy_page_end (NimfEngine *engine, NimfServiceIM *target)
+static gboolean
+nimf_anthy_page_down (NimfEngine *engine, NimfServiceIM *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -322,13 +347,15 @@ nimf_anthy_page_end (NimfEngine *engine, NimfServiceIM *target)
 
   if (anthy->current_page == anthy->n_pages)
   {
-    nimf_candidatable_select_last_item_in_page (anthy->candidatable);
-    return;
+    nimf_anthy_page_home (engine, target);
+    return FALSE;
   }
 
-  anthy->current_page = anthy->n_pages;
+  anthy->current_page++;
   nimf_anthy_update_page (engine, target);
-  nimf_candidatable_select_last_item_in_page (anthy->candidatable);
+  nimf_candidatable_select_first_item_in_page (anthy->candidatable);
+
+  return TRUE;
 }
 
 static void
@@ -394,50 +421,85 @@ nimf_anthy_filter_event_romaji (NimfEngine    *engine,
   NimfAnthy   *anthy = NIMF_ANTHY (engine);
   const gchar *str;
 
-  if (anthy->preedit2->len == 1 && event->key.keyval != 'n' &&
-      anthy->preedit2->str[0] == event->key.keyval)
-    g_string_append (anthy->preedit1, "っ");
-  else if (anthy->preedit2->len == 0 && event->key.keyval == 'n')
-    g_string_append (anthy->preedit2, "ん");
-  else
-    g_string_append_c (anthy->preedit2, event->key.keyval);
+  g_string_insert_c (anthy->preedit, anthy->preedit_offset + anthy->preedit_dx, event->key.keyval);
+  anthy->preedit_dx++;
 
   while (TRUE)
   {
-    str = g_hash_table_lookup (nimf_anthy_romaji, anthy->preedit2->str);
+    gchar *key;
+
+    key = g_strndup (anthy->preedit->str + anthy->preedit_offset,
+                     anthy->preedit_dx);
+    str = g_hash_table_lookup (nimf_anthy_romaji, key);
+
+    g_free (key);
 
     if (str)
     {
       if (str[0] != 0)
       {
-        g_string_append (anthy->preedit1, str);
-        g_string_assign (anthy->preedit2, "");
+        g_string_erase (anthy->preedit, anthy->preedit_offset,
+                        anthy->preedit_dx);
+        g_string_insert (anthy->preedit, anthy->preedit_offset, str);
+        anthy->preedit_offset += strlen (str);
+        anthy->preedit_dx = 0;
       }
 
       break;
     }
     else
     {
-      if (anthy->preedit2->len > 1)
+      if (anthy->preedit_dx > 1)
       {
-        static gchar c[2] = {0};
+        char a = anthy->preedit->str[anthy->preedit_offset + anthy->preedit_dx - 2];
+        char b = anthy->preedit->str[anthy->preedit_offset + anthy->preedit_dx - 1];
 
-        g_string_append_len (anthy->preedit1, anthy->preedit2->str,
-                             anthy->preedit2->len - 1);
-        c[0] = anthy->preedit2->str[anthy->preedit2->len - 1];
-        g_string_assign (anthy->preedit2, c);
+        if (a != 'n' && a == b)
+        {
+          g_string_erase  (anthy->preedit, anthy->preedit_offset + anthy->preedit_dx - 2, 1);
+          g_string_insert (anthy->preedit, anthy->preedit_offset + anthy->preedit_dx - 2, "っ");
+          anthy->preedit_offset += strlen ("っ") - 1;
+        }
+        else if (anthy->n_input_mode == COMMON && a == 'n' &&
+                 !(b == 'a' || b == 'e' || b == 'i' || b == 'o' || b == 'u' || b == 'n'))
+        {
+          g_string_erase  (anthy->preedit, anthy->preedit_offset + anthy->preedit_dx - 2, 1);
+          g_string_insert (anthy->preedit, anthy->preedit_offset + anthy->preedit_dx - 2, "ん");
+          anthy->preedit_offset += strlen ("ん") - 1;
+        }
+
+        anthy->preedit_offset += anthy->preedit_dx - 1;
+        anthy->preedit_dx = 1;
       }
       else
       {
-        g_string_append (anthy->preedit1, anthy->preedit2->str);
-        g_string_assign (anthy->preedit2, "");
-
         break;
       }
     }
   }
 
   return TRUE;
+}
+
+static void
+nimf_anthy_preedit_insert (NimfAnthy   *anthy,
+                           const gchar *val)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  g_string_insert (anthy->preedit, anthy->preedit_offset, val);
+  anthy->preedit_offset += strlen (val);
+}
+
+static gboolean
+nimf_anthy_preedit_offset_has_suffix (NimfAnthy *anthy, const gchar *suffix)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  gint len = strlen (suffix);
+
+  return !!g_strstr_len (anthy->preedit->str + anthy->preedit_offset - len,
+                         len, suffix);
 }
 
 static gboolean
@@ -453,191 +515,191 @@ nimf_anthy_filter_event_pc104 (NimfEngine    *engine,
 
   switch (event->key.hardware_keycode)
   {
-    case 49: g_string_append (anthy->preedit1, "ろ"); break;
-    case 10: g_string_append (anthy->preedit1, "ぬ"); break;
-    case 11: g_string_append (anthy->preedit1, "ふ"); break;
+    case 49: nimf_anthy_preedit_insert (anthy, "ろ"); break;
+    case 10: nimf_anthy_preedit_insert (anthy, "ぬ"); break;
+    case 11: nimf_anthy_preedit_insert (anthy, "ふ"); break;
     case 12:
-      if (is_shift) g_string_append (anthy->preedit1, "ぁ");
-      else          g_string_append (anthy->preedit1, "あ");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ぁ");
+      else          nimf_anthy_preedit_insert (anthy, "あ");
       break;
     case 13:
-      if (is_shift) g_string_append (anthy->preedit1, "ぅ");
-      else          g_string_append (anthy->preedit1, "う");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ぅ");
+      else          nimf_anthy_preedit_insert (anthy, "う");
       break;
     case 14:
-      if (is_shift) g_string_append (anthy->preedit1, "ぇ");
-      else          g_string_append (anthy->preedit1, "え");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ぇ");
+      else          nimf_anthy_preedit_insert (anthy, "え");
       break;
     case 15:
-      if (is_shift) g_string_append (anthy->preedit1, "ぉ");
-      else          g_string_append (anthy->preedit1, "お");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ぉ");
+      else          nimf_anthy_preedit_insert (anthy, "お");
       break;
     case 16:
-      if (is_shift) g_string_append (anthy->preedit1, "ゃ");
-      else          g_string_append (anthy->preedit1, "や");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ゃ");
+      else          nimf_anthy_preedit_insert (anthy, "や");
       break;
     case 17:
-      if (is_shift) g_string_append (anthy->preedit1, "ゅ");
-      else          g_string_append (anthy->preedit1, "ゆ");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ゅ");
+      else          nimf_anthy_preedit_insert (anthy, "ゆ");
       break;
     case 18:
-      if (is_shift) g_string_append (anthy->preedit1, "ょ");
-      else          g_string_append (anthy->preedit1, "よ");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ょ");
+      else          nimf_anthy_preedit_insert (anthy, "よ");
       break;
     case 19:
-      if (is_shift) g_string_append (anthy->preedit1, "を");
-      else          g_string_append (anthy->preedit1, "わ");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "を");
+      else          nimf_anthy_preedit_insert (anthy, "わ");
       break;
     case 20:
-      if (is_shift) g_string_append (anthy->preedit1, "ー");
-      else          g_string_append (anthy->preedit1, "ほ");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ー");
+      else          nimf_anthy_preedit_insert (anthy, "ほ");
       break;
-    case 21: g_string_append (anthy->preedit1, "へ"); break;
-    case 24: g_string_append (anthy->preedit1, "た"); break;
-    case 25: g_string_append (anthy->preedit1, "て"); break;
+    case 21: nimf_anthy_preedit_insert (anthy, "へ"); break;
+    case 24: nimf_anthy_preedit_insert (anthy, "た"); break;
+    case 25: nimf_anthy_preedit_insert (anthy, "て"); break;
     case 26:
-      if (is_shift) g_string_append (anthy->preedit1, "ぃ");
-      else          g_string_append (anthy->preedit1, "い");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "ぃ");
+      else          nimf_anthy_preedit_insert (anthy, "い");
       break;
-    case 27: g_string_append (anthy->preedit1, "す"); break;
-    case 28: g_string_append (anthy->preedit1, "か"); break;
-    case 29: g_string_append (anthy->preedit1, "ん"); break;
-    case 30: g_string_append (anthy->preedit1, "な"); break;
-    case 31: g_string_append (anthy->preedit1, "に"); break;
-    case 32: g_string_append (anthy->preedit1, "ら"); break;
-    case 33: g_string_append (anthy->preedit1, "せ"); break;
+    case 27: nimf_anthy_preedit_insert (anthy, "す"); break;
+    case 28: nimf_anthy_preedit_insert (anthy, "か"); break;
+    case 29: nimf_anthy_preedit_insert (anthy, "ん"); break;
+    case 30: nimf_anthy_preedit_insert (anthy, "な"); break;
+    case 31: nimf_anthy_preedit_insert (anthy, "に"); break;
+    case 32: nimf_anthy_preedit_insert (anthy, "ら"); break;
+    case 33: nimf_anthy_preedit_insert (anthy, "せ"); break;
     case 34:
       if (is_shift)
       {
-        g_string_append (anthy->preedit1, "「");
+        nimf_anthy_preedit_insert (anthy, "「");
       }
       else
       {
         if (anthy->preedit->len == 0)
           break;
 
-        if (g_str_has_suffix (anthy->preedit1->str, "は"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("は"), "ぱ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "ひ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("ひ"), "ぴ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "ふ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("ふ"), "ぷ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "へ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("へ"), "ぺ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "ほ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("ほ"), "ぽ");
+        if (nimf_anthy_preedit_offset_has_suffix (anthy, "か"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("か"), "が");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "き"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("き"), "ぎ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "く"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("く"), "ぐ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "け"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("け"), "げ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "こ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("こ"), "ご");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "さ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("さ"), "ざ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "し"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("し"), "じ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "す"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("す"), "ず");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "せ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("せ"), "ぜ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "そ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("そ"), "ぞ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "た"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("た"), "だ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "ち"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("ち"), "ぢ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "つ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("つ"), "づ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "て"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("て"), "で");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "と"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("と"), "ど");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "は"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("は"), "ば");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "ひ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("ひ"), "び");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "ふ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("ふ"), "ぶ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "へ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("へ"), "べ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "ほ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("ほ"), "ぼ");
       }
       break;
     case 35:
       if (is_shift)
       {
-        g_string_append (anthy->preedit1, "」");
+        nimf_anthy_preedit_insert (anthy, "」");
       }
       else
       {
         if (anthy->preedit->len == 0)
           break;
 
-        if (g_str_has_suffix (anthy->preedit1->str, "か"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("か"), "が");
-        else if (g_str_has_suffix (anthy->preedit1->str, "き"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("き"), "ぎ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "く"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("く"), "ぐ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "け"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("け"), "げ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "こ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("こ"), "ご");
-        else if (g_str_has_suffix (anthy->preedit1->str, "さ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("さ"), "ざ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "し"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("し"), "じ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "す"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("す"), "ず");
-        else if (g_str_has_suffix (anthy->preedit1->str, "せ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("せ"), "ぜ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "そ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("そ"), "ぞ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "た"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("た"), "だ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "ち"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("ち"), "ぢ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "つ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("つ"), "づ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "て"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("て"), "で");
-        else if (g_str_has_suffix (anthy->preedit1->str, "と"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("と"), "ど");
-        else if (g_str_has_suffix (anthy->preedit1->str, "は"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("は"), "ば");
-        else if (g_str_has_suffix (anthy->preedit1->str, "ひ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("ひ"), "び");
-        else if (g_str_has_suffix (anthy->preedit1->str, "ふ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("ふ"), "ぶ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "へ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("へ"), "べ");
-        else if (g_str_has_suffix (anthy->preedit1->str, "ほ"))
-          g_string_overwrite (anthy->preedit1,
-                              anthy->preedit1->len - strlen ("ほ"), "ぼ");
+        if (nimf_anthy_preedit_offset_has_suffix (anthy, "は"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("は"), "ぱ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "ひ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("ひ"), "ぴ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "ふ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("ふ"), "ぷ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "へ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("へ"), "ぺ");
+        else if (nimf_anthy_preedit_offset_has_suffix (anthy, "ほ"))
+          g_string_overwrite (anthy->preedit,
+                              anthy->preedit_offset - strlen ("ほ"), "ぽ");
       }
       break;
-    case 51: g_string_append (anthy->preedit1, "む"); break;
-    case 38: g_string_append (anthy->preedit1, "ち"); break;
-    case 39: g_string_append (anthy->preedit1, "と"); break;
-    case 40: g_string_append (anthy->preedit1, "し"); break;
-    case 41: g_string_append (anthy->preedit1, "は"); break;
-    case 42: g_string_append (anthy->preedit1, "き"); break;
-    case 43: g_string_append (anthy->preedit1, "く"); break;
-    case 44: g_string_append (anthy->preedit1, "ま"); break;
-    case 45: g_string_append (anthy->preedit1, "の"); break;
-    case 46: g_string_append (anthy->preedit1, "り"); break;
-    case 47: g_string_append (anthy->preedit1, "れ"); break;
-    case 48: g_string_append (anthy->preedit1, "け"); break;
+    case 51: nimf_anthy_preedit_insert (anthy, "む"); break;
+    case 38: nimf_anthy_preedit_insert (anthy, "ち"); break;
+    case 39: nimf_anthy_preedit_insert (anthy, "と"); break;
+    case 40: nimf_anthy_preedit_insert (anthy, "し"); break;
+    case 41: nimf_anthy_preedit_insert (anthy, "は"); break;
+    case 42: nimf_anthy_preedit_insert (anthy, "き"); break;
+    case 43: nimf_anthy_preedit_insert (anthy, "く"); break;
+    case 44: nimf_anthy_preedit_insert (anthy, "ま"); break;
+    case 45: nimf_anthy_preedit_insert (anthy, "の"); break;
+    case 46: nimf_anthy_preedit_insert (anthy, "り"); break;
+    case 47: nimf_anthy_preedit_insert (anthy, "れ"); break;
+    case 48: nimf_anthy_preedit_insert (anthy, "け"); break;
     case 52:
-      if (is_shift) g_string_append (anthy->preedit1, "っ");
-      else          g_string_append (anthy->preedit1, "つ");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "っ");
+      else          nimf_anthy_preedit_insert (anthy, "つ");
       break;
-    case 53: g_string_append (anthy->preedit1, "さ"); break;
-    case 54: g_string_append (anthy->preedit1, "そ"); break;
-    case 55: g_string_append (anthy->preedit1, "ひ"); break;
-    case 56: g_string_append (anthy->preedit1, "こ"); break;
-    case 57: g_string_append (anthy->preedit1, "み"); break;
-    case 58: g_string_append (anthy->preedit1, "も"); break;
+    case 53: nimf_anthy_preedit_insert (anthy, "さ"); break;
+    case 54: nimf_anthy_preedit_insert (anthy, "そ"); break;
+    case 55: nimf_anthy_preedit_insert (anthy, "ひ"); break;
+    case 56: nimf_anthy_preedit_insert (anthy, "こ"); break;
+    case 57: nimf_anthy_preedit_insert (anthy, "み"); break;
+    case 58: nimf_anthy_preedit_insert (anthy, "も"); break;
     case 59:
-      if (is_shift) g_string_append (anthy->preedit1, "、");
-      else          g_string_append (anthy->preedit1, "ね");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "、");
+      else          nimf_anthy_preedit_insert (anthy, "ね");
       break;
     case 60:
-      if (is_shift) g_string_append (anthy->preedit1, "。");
-      else          g_string_append (anthy->preedit1, "る");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "。");
+      else          nimf_anthy_preedit_insert (anthy, "る");
       break;
     case 61:
-      if (is_shift) g_string_append (anthy->preedit1, "・");
-      else          g_string_append (anthy->preedit1, "め");
+      if (is_shift) nimf_anthy_preedit_insert (anthy, "・");
+      else          nimf_anthy_preedit_insert (anthy, "め");
       break;
     default:
       return FALSE;
@@ -653,11 +715,9 @@ nimf_anthy_convert_to (NimfAnthy *anthy, int candidate_type)
 
   struct   anthy_conv_stat conv_stat;
   GString *string;
-  gchar   *new_preedit;
   gint     i;
 
-  new_preedit = g_strconcat (anthy->preedit1->str, anthy->preedit2->str, NULL);
-  anthy_set_string (anthy->context, new_preedit);
+  anthy_set_string (anthy->context, anthy->preedit->str);
   anthy_get_stat (anthy->context, &conv_stat);
   string = g_string_new ("");
   memset (anthy->buffer, 0, NIMF_ANTHY_BUFFER_SIZE);
@@ -669,9 +729,22 @@ nimf_anthy_convert_to (NimfAnthy *anthy, int candidate_type)
     g_string_append (string, anthy->buffer);
   }
 
-  g_free (new_preedit);
+  anthy->preedit_offset = anthy->preedit->len;
+  anthy->preedit_dx     = 0;
 
   return g_string_free (string, FALSE);
+}
+
+static void
+nimf_anthy_replace_last_n (NimfAnthy *anthy)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  if (g_str_has_suffix (anthy->preedit->str, "n"))
+  {
+    g_string_erase  (anthy->preedit, anthy->preedit->len - 1, 1);
+    g_string_append (anthy->preedit, "ん");
+  }
 }
 
 static gboolean
@@ -687,6 +760,12 @@ nimf_anthy_filter_event (NimfEngine    *engine,
   if (event->key.type == NIMF_EVENT_KEY_RELEASE)
     return FALSE;
 
+  if (anthy->input_mode_changed)
+  {
+    nimf_anthy_reset (engine, target);
+    anthy->input_mode_changed = FALSE;
+  }
+
   if (nimf_candidatable_is_visible (anthy->candidatable))
   {
     switch (event->key.keyval)
@@ -696,27 +775,26 @@ nimf_anthy_filter_event (NimfEngine    *engine,
         nimf_candidatable_hide (anthy->candidatable);
         nimf_anthy_emit_commit (engine, target);
         return TRUE;
-      case NIMF_KEY_space:
+      case NIMF_KEY_Up:
+      case NIMF_KEY_KP_Up:
         {
+          nimf_candidatable_select_previous_item (anthy->candidatable);
           gint index = nimf_candidatable_get_selected_index (anthy->candidatable);
 
           if (G_LIKELY (index >= 0))
-          {
-            gchar *text;
-
-            text = nimf_candidatable_get_selected_text (anthy->candidatable);
-            on_candidate_clicked (engine, target, text, index);
-            g_free (text);
-          }
+            on_candidate_clicked (engine, target, NULL, index);
         }
-        return TRUE;
-      case NIMF_KEY_Up:
-      case NIMF_KEY_KP_Up:
-        nimf_candidatable_select_previous_item (anthy->candidatable);
         return TRUE;
       case NIMF_KEY_Down:
       case NIMF_KEY_KP_Down:
-        nimf_candidatable_select_next_item (anthy->candidatable);
+      case NIMF_KEY_space:
+        {
+          nimf_candidatable_select_next_item (anthy->candidatable);
+          gint index = nimf_candidatable_get_selected_index (anthy->candidatable);
+
+          if (G_LIKELY (index >= 0))
+            on_candidate_clicked (engine, target, NULL, index);
+        }
         return TRUE;
       case NIMF_KEY_Left:
       case NIMF_KEY_KP_Left:
@@ -732,8 +810,8 @@ nimf_anthy_filter_event (NimfEngine    *engine,
           anthy->current_segment = conv_stat.nr_segment - 1;
         }
 
-        nimf_anthy_update_preedit_text (engine, target);
-        nimf_anthy_update_candidate    (engine, target);
+        nimf_anthy_convert_preedit_text (engine, target);
+        nimf_anthy_update_candidate     (engine, target);
         return TRUE;
       case NIMF_KEY_Right:
       case NIMF_KEY_KP_Right:
@@ -748,8 +826,8 @@ nimf_anthy_filter_event (NimfEngine    *engine,
             anthy->current_segment = 0;
         }
 
-        nimf_anthy_update_preedit_text (engine, target);
-        nimf_anthy_update_candidate    (engine, target);
+        nimf_anthy_convert_preedit_text (engine, target);
+        nimf_anthy_update_candidate     (engine, target);
         return TRUE;
       case NIMF_KEY_Page_Up:
       case NIMF_KEY_KP_Page_Up:
@@ -792,6 +870,7 @@ nimf_anthy_filter_event (NimfEngine    *engine,
           if (anthy->current_page < 1)
             break;
 
+          struct anthy_segment_stat segment_stat;
           gint i, n;
 
           if (event->key.keyval >= NIMF_KEY_0 &&
@@ -805,29 +884,24 @@ nimf_anthy_filter_event (NimfEngine    *engine,
 
           i = (anthy->current_page - 1) * 10 + n;
 
-          struct anthy_conv_stat conv_stat;
-          struct anthy_segment_stat segment_stat;
-
-          anthy_get_stat (anthy->context, &conv_stat);
           anthy_get_segment_stat (anthy->context, anthy->current_segment, &segment_stat);
 
           if (i < MIN (anthy->current_page * 10, segment_stat.nr_candidate))
-          {
-            anthy_get_segment (anthy->context, anthy->current_segment,
-                               i, anthy->buffer, NIMF_ANTHY_BUFFER_SIZE);
-            on_candidate_clicked (engine, target, anthy->buffer, n);
-          }
+            on_candidate_clicked (engine, target, NULL, n);
         }
         return TRUE;
       case NIMF_KEY_Escape:
         nimf_candidatable_hide (anthy->candidatable);
+        nimf_anthy_update_preedit_text (engine, target);
         return TRUE;
       default:
+        nimf_candidatable_hide (anthy->candidatable);
+        nimf_anthy_update_preedit_text (engine, target);
         break;
     }
   }
 
-  if (anthy->preedit1->len + anthy->preedit2->len > 0)
+  if (anthy->preedit->len > 0)
   {
     if (G_UNLIKELY (nimf_event_matches (event, (const NimfKey **) anthy->hiragana_keys)))
     {
@@ -857,21 +931,51 @@ nimf_anthy_filter_event (NimfEngine    *engine,
     }
   }
 
-  if (event->key.keyval == NIMF_KEY_space ||
-      (event->key.state & NIMF_MODIFIER_MASK) == NIMF_CONTROL_MASK ||
+  if ((event->key.state & NIMF_MODIFIER_MASK) == NIMF_CONTROL_MASK ||
       (event->key.state & NIMF_MODIFIER_MASK) == (NIMF_CONTROL_MASK | NIMF_MOD2_MASK))
     return FALSE;
 
-  if (anthy->input_mode_changed)
+  if (event->key.keyval == NIMF_KEY_space)
   {
-    nimf_anthy_reset (engine, target);
-    anthy->input_mode_changed = FALSE;
+    anthy->current_segment = 0;
+    struct anthy_conv_stat conv_stat;
+
+    if (anthy->n_input_mode == COMMON)
+      nimf_anthy_replace_last_n (anthy);
+
+    anthy_set_string (anthy->context, anthy->preedit->str);
+    anthy_get_stat (anthy->context, &conv_stat);
+    anthy->current_segment = conv_stat.nr_segment - 1;
+    anthy->selections = g_realloc_n (anthy->selections, conv_stat.nr_segment,
+                                     sizeof (gint));
+    memset (anthy->selections, 0, conv_stat.nr_segment * sizeof (gint));
+
+    nimf_anthy_convert_preedit_text (engine, target);
+
+    if (anthy->preedit->len > 0)
+    {
+      if (!nimf_candidatable_is_visible (anthy->candidatable))
+        nimf_candidatable_show (anthy->candidatable, target, FALSE);
+
+      anthy->current_segment = 0;
+      nimf_anthy_convert_preedit_text (engine, target);
+      nimf_anthy_update_candidate (engine, target);
+    }
+    else
+    {
+      nimf_candidatable_hide (anthy->candidatable);
+    }
+
+    return TRUE;
   }
 
   if (event->key.keyval == NIMF_KEY_Return)
   {
-    if (anthy->preedit1->len > 0 || anthy->preedit2->len > 0)
+    if (anthy->preedit->len > 0)
     {
+      if (anthy->n_input_mode == COMMON)
+        nimf_anthy_replace_last_n (anthy);
+
       nimf_anthy_reset (engine, target);
       retval = TRUE;
     }
@@ -880,26 +984,85 @@ nimf_anthy_filter_event (NimfEngine    *engine,
   }
   else if (event->key.keyval == NIMF_KEY_BackSpace)
   {
-    if (anthy->preedit2->len > 0)
+    if (anthy->preedit_offset + anthy->preedit_dx > 0)
     {
-      gchar *tmp;
-      glong  len = g_utf8_strlen (anthy->preedit2->str, -1);
+      if (anthy->preedit_dx > 0)
+      {
+        g_string_erase (anthy->preedit, anthy->preedit_offset + anthy->preedit_dx - 1, 1);
+        anthy->preedit_dx--;
+      }
+      else if (anthy->preedit_offset > 0)
+      {
+        const gchar *prev;
 
-      tmp = g_utf8_substring (anthy->preedit2->str, 0, len - 1);
-      g_string_assign (anthy->preedit2, tmp);
+        prev = g_utf8_prev_char (anthy->preedit->str + anthy->preedit_offset);
+        g_string_erase (anthy->preedit, prev - anthy->preedit->str,
+                        anthy->preedit->str + anthy->preedit_offset - prev);
+        anthy->preedit_offset = prev - anthy->preedit->str;
+      }
 
-      g_free (tmp);
       retval = TRUE;
     }
-    else if (anthy->preedit1->len > 0)
+    else
     {
-      gchar *tmp;
-      glong  len = g_utf8_strlen (anthy->preedit1->str, -1);
+      retval = FALSE;
+    }
+  }
+  else if (event->key.keyval == NIMF_KEY_Delete ||
+           event->key.keyval == NIMF_KEY_KP_Delete)
+  {
+    if (anthy->preedit_offset + anthy->preedit_dx < anthy->preedit->len)
+    {
+      const gchar *next;
+      gint         len;
 
-      tmp = g_utf8_substring (anthy->preedit1->str, 0, len - 1);
-      g_string_assign (anthy->preedit1, tmp);
+      next = g_utf8_next_char (anthy->preedit->str + anthy->preedit_offset + anthy->preedit_dx);
+      len = next - (anthy->preedit->str + anthy->preedit_offset + anthy->preedit_dx);
 
-      g_free (tmp);
+      g_string_erase (anthy->preedit, anthy->preedit_offset + anthy->preedit_dx, len);
+
+      retval = TRUE;
+    }
+    else
+    {
+      retval = FALSE;
+    }
+  }
+  else if (event->key.keyval == NIMF_KEY_Left ||
+           event->key.keyval == NIMF_KEY_KP_Left)
+  {
+    if (anthy->preedit_dx > 0)
+    {
+      anthy->preedit_offset += anthy->preedit_dx - 1;
+      anthy->preedit_dx = 0;
+
+      retval = TRUE;
+    }
+    else if (anthy->preedit_offset > 0)
+    {
+      const gchar *prev;
+
+      prev = g_utf8_prev_char (anthy->preedit->str + anthy->preedit_offset);
+      anthy->preedit_offset = prev - anthy->preedit->str;
+
+      retval = TRUE;
+    }
+    else
+    {
+      retval = FALSE;
+    }
+  }
+  else if (event->key.keyval == NIMF_KEY_Right ||
+           event->key.keyval == NIMF_KEY_KP_Right)
+  {
+    const gchar *next;
+
+    if (anthy->preedit_offset + anthy->preedit_dx < anthy->preedit->len)
+    {
+      next = g_utf8_next_char (anthy->preedit->str + anthy->preedit_offset + anthy->preedit_dx);
+      anthy->preedit_offset = next - anthy->preedit->str;
+      anthy->preedit_dx = 0;
+
       retval = TRUE;
     }
     else
@@ -917,35 +1080,7 @@ nimf_anthy_filter_event (NimfEngine    *engine,
   if (retval == FALSE)
     return FALSE;
 
-  anthy->current_segment = 0;
-  struct anthy_conv_stat conv_stat;
-  gchar *hiragana;
-
-  hiragana = g_strconcat (anthy->preedit1->str, anthy->preedit2->str, NULL);
-
-  nimf_candidatable_set_auxiliary_text (anthy->candidatable, hiragana,
-                                        g_utf8_strlen (hiragana, -1));
-  anthy_set_string (anthy->context, hiragana);
-  anthy_get_stat (anthy->context, &conv_stat);
-  anthy->current_segment = conv_stat.nr_segment - 1;
-  anthy->selections = g_realloc_n (anthy->selections, conv_stat.nr_segment,
-                                   sizeof (gint));
-  memset (anthy->selections, 0, conv_stat.nr_segment * sizeof (gint));
   nimf_anthy_update_preedit_text (engine, target);
-
-  if (anthy->preedit1->len + anthy->preedit2->len > 0)
-  {
-    if (!nimf_candidatable_is_visible (anthy->candidatable))
-      nimf_candidatable_show (anthy->candidatable, target, TRUE);
-
-    nimf_anthy_update_candidate (engine, target);
-  }
-  else
-  {
-    nimf_candidatable_hide (anthy->candidatable);
-  }
-
-  g_free (hiragana);
 
   return TRUE;
 }
@@ -985,6 +1120,45 @@ on_changed_method (GSettings *settings,
   anthy->input_mode_changed = TRUE;
 }
 
+static gint
+nimf_anthy_get_n_input_mode (NimfAnthy *anthy)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  gchar *mode;
+  gint   retval;
+
+  mode = g_settings_get_string (anthy->settings, "n-input-mode");
+
+  if (g_strcmp0 (mode, "common") == 0)
+    retval = COMMON;
+  else
+    retval = EXPLICIT;
+
+  g_free (mode);
+
+  return retval;
+}
+
+static void
+on_changed_n_input_mode (GSettings *settings,
+                         gchar     *key,
+                         NimfAnthy *anthy)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  gchar *mode;
+
+  mode = g_settings_get_string (settings, key);
+
+  if (g_strcmp0 (mode, "common") == 0)
+    anthy->n_input_mode = COMMON;
+  else
+    anthy->n_input_mode = EXPLICIT;
+
+  g_free (mode);
+}
+
 static void
 nimf_anthy_init (NimfAnthy *anthy)
 {
@@ -993,11 +1167,9 @@ nimf_anthy_init (NimfAnthy *anthy)
   gchar **hiragana_keys;
   gchar **katakana_keys;
 
-  anthy->id           = g_strdup ("nimf-anthy");
-  anthy->preedit      = g_string_new ("");
-  anthy->preedit1     = g_string_new ("");
-  anthy->preedit2     = g_string_new ("");
-  anthy->preedit_attrs  = g_malloc0_n (3, sizeof (NimfPreeditAttr *));
+  anthy->id               = g_strdup ("nimf-anthy");
+  anthy->preedit          = g_string_new ("");
+  anthy->preedit_attrs    = g_malloc0_n (3, sizeof (NimfPreeditAttr *));
   anthy->preedit_attrs[0] = nimf_preedit_attr_new (NIMF_PREEDIT_ATTR_UNDERLINE, 0, 0);
   anthy->preedit_attrs[1] = nimf_preedit_attr_new (NIMF_PREEDIT_ATTR_HIGHLIGHT, 0, 0);
   anthy->preedit_attrs[2] = NULL;
@@ -1175,19 +1347,19 @@ nimf_anthy_init (NimfAnthy *anthy)
     g_hash_table_insert (nimf_anthy_romaji, "myi", g_strdup ("みぃ"));
     g_hash_table_insert (nimf_anthy_romaji, "myo", g_strdup ("みょ"));
     g_hash_table_insert (nimf_anthy_romaji, "myu", g_strdup ("みゅ"));
-    g_hash_table_insert (nimf_anthy_romaji, "ん", g_strdup ("")); /* dummy */
-    g_hash_table_insert (nimf_anthy_romaji, "んa", g_strdup ("な"));
-    g_hash_table_insert (nimf_anthy_romaji, "んe", g_strdup ("ね"));
-    g_hash_table_insert (nimf_anthy_romaji, "んi", g_strdup ("に"));
-    g_hash_table_insert (nimf_anthy_romaji, "んn", g_strdup ("ん"));
-    g_hash_table_insert (nimf_anthy_romaji, "んo", g_strdup ("の"));
-    g_hash_table_insert (nimf_anthy_romaji, "んu", g_strdup ("ぬ"));
-    g_hash_table_insert (nimf_anthy_romaji, "んy", g_strdup ("")); /* dummy */
-    g_hash_table_insert (nimf_anthy_romaji, "んya", g_strdup ("にゃ"));
-    g_hash_table_insert (nimf_anthy_romaji, "んye", g_strdup ("にぇ"));
-    g_hash_table_insert (nimf_anthy_romaji, "んyi", g_strdup ("にぃ"));
-    g_hash_table_insert (nimf_anthy_romaji, "んyo", g_strdup ("にょ"));
-    g_hash_table_insert (nimf_anthy_romaji, "んyu", g_strdup ("にゅ"));
+    g_hash_table_insert (nimf_anthy_romaji, "n", g_strdup ("")); /* dummy */
+    g_hash_table_insert (nimf_anthy_romaji, "na", g_strdup ("な"));
+    g_hash_table_insert (nimf_anthy_romaji, "ne", g_strdup ("ね"));
+    g_hash_table_insert (nimf_anthy_romaji, "ni", g_strdup ("に"));
+    g_hash_table_insert (nimf_anthy_romaji, "nn", g_strdup ("ん"));
+    g_hash_table_insert (nimf_anthy_romaji, "no", g_strdup ("の"));
+    g_hash_table_insert (nimf_anthy_romaji, "nu", g_strdup ("ぬ"));
+    g_hash_table_insert (nimf_anthy_romaji, "ny", g_strdup ("")); /* dummy */
+    g_hash_table_insert (nimf_anthy_romaji, "nya", g_strdup ("にゃ"));
+    g_hash_table_insert (nimf_anthy_romaji, "nye", g_strdup ("にぇ"));
+    g_hash_table_insert (nimf_anthy_romaji, "nyi", g_strdup ("にぃ"));
+    g_hash_table_insert (nimf_anthy_romaji, "nyo", g_strdup ("にょ"));
+    g_hash_table_insert (nimf_anthy_romaji, "nyu", g_strdup ("にゅ"));
     g_hash_table_insert (nimf_anthy_romaji, "o", g_strdup ("お"));
     g_hash_table_insert (nimf_anthy_romaji, "p", g_strdup ("")); /* dummy */
     g_hash_table_insert (nimf_anthy_romaji, "pa", g_strdup ("ぱ"));
@@ -1355,6 +1527,7 @@ nimf_anthy_init (NimfAnthy *anthy)
     g_hash_table_insert (nimf_anthy_romaji, "zyu", g_strdup ("じゅ"));
     g_hash_table_insert (nimf_anthy_romaji, ",", g_strdup ("、"));
     g_hash_table_insert (nimf_anthy_romaji, ".", g_strdup ("。"));
+    g_hash_table_insert (nimf_anthy_romaji, "-", g_strdup ("ー"));
   }
 
   if (anthy_init () < 0)
@@ -1366,8 +1539,9 @@ nimf_anthy_init (NimfAnthy *anthy)
   nimf_anthy_ref_count++;
   anthy_context_set_encoding (anthy->context, ANTHY_UTF8_ENCODING);
 
-  anthy->settings = g_settings_new ("org.nimf.engines.nimf-anthy");
-  anthy->input_mode = g_settings_get_string (anthy->settings, "input-mode");
+  anthy->settings     = g_settings_new ("org.nimf.engines.nimf-anthy");
+  anthy->input_mode   = g_settings_get_string (anthy->settings, "input-mode");
+  anthy->n_input_mode = nimf_anthy_get_n_input_mode (anthy);
   hiragana_keys = g_settings_get_strv   (anthy->settings, "hiragana-keys");
   katakana_keys = g_settings_get_strv   (anthy->settings, "katakana-keys");
   anthy->hiragana_keys = nimf_key_newv ((const gchar **) hiragana_keys);
@@ -1382,6 +1556,8 @@ nimf_anthy_init (NimfAnthy *anthy)
                     G_CALLBACK (on_changed_keys), anthy);
   g_signal_connect (anthy->settings, "changed::input-mode",
                     G_CALLBACK (on_changed_method), anthy);
+  g_signal_connect (anthy->settings, "changed::n-input-mode",
+                    G_CALLBACK (on_changed_n_input_mode), anthy);
 }
 
 static void
@@ -1391,8 +1567,6 @@ nimf_anthy_finalize (GObject *object)
 
   NimfAnthy *anthy = NIMF_ANTHY (object);
 
-  g_string_free (anthy->preedit1, TRUE);
-  g_string_free (anthy->preedit2, TRUE);
   nimf_preedit_attr_freev (anthy->preedit_attrs);
   g_free (anthy->id);
   g_free (anthy->selections);

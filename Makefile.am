@@ -1,4 +1,4 @@
-SUBDIRS = libnimf modules daemon settings po data
+SUBDIRS = libnimf modules bin po data tests
 
 ACLOCAL_AMFLAGS = -I m4
 

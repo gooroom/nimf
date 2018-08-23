@@ -3,7 +3,7 @@
  * nimf-private.h
  * This file is part of Nimf.
  *
- * Copyright (C) 2015,2016 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -27,27 +27,16 @@
 #endif
 
 #include <glib-object.h>
-#include "nimf-server.h"
 #include "nimf-message.h"
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
-
-typedef struct _NimfServer NimfServer;
-
-typedef struct _NimfEnginePrivate NimfEnginePrivate;
-
-struct _NimfEnginePrivate
-{
-  NimfServer *server;
-  gchar      *surrounding_text;
-  gint        surrounding_cursor_index;
-};
 
 typedef struct _NimfResult NimfResult;
 
 struct _NimfResult
 {
-  gboolean    is_dispatched;
+  gboolean     is_dispatched;
   NimfMessage *reply;
 };
 
@@ -66,6 +55,8 @@ void         nimf_result_iteration_until (NimfResult      *result,
                                           GMainContext    *main_context,
                                           guint16          icid,
                                           NimfMessageType  type);
+gchar       *nimf_get_socket_path (void);
+
 G_END_DECLS
 
 #endif /* __NIMF_PRIVATE_H__ */

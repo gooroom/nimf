@@ -3,7 +3,7 @@
  * nimf-settings.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2016-2017 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2016-2018 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -731,7 +731,6 @@ nimf_settings_page_new (NimfSettings *nsettings,
 
   for (i = 0, l = key_list; l != NULL; l = l->next, i++)
   {
-    GVariant            *variant;
     GSettingsSchemaKey  *schema_key = NULL;
     NimfSettingsPageKey *page_key;
     const GVariantType  *type;
@@ -744,9 +743,8 @@ nimf_settings_page_new (NimfSettings *nsettings,
     if (g_str_has_prefix (key, "hidden-"))
       continue;
 
-    variant = g_settings_get_value (page->gsettings, key);
-    type = g_variant_get_type (variant);
     schema_key = g_settings_schema_get_key (schema, key);
+    type = g_settings_schema_key_get_value_type (schema_key);
     summary = g_settings_schema_key_get_summary     (schema_key);
     desc    = g_settings_schema_key_get_description (schema_key);
 
@@ -776,7 +774,6 @@ nimf_settings_page_new (NimfSettings *nsettings,
                G_STRFUNC, (gchar *) type);
 
     g_settings_schema_key_unref (schema_key);
-    g_variant_unref (variant);
   }
 
   g_strfreev (keys);
@@ -803,7 +800,7 @@ nimf_settings_build_main_window (NimfSettings *nsettings)
   gint        i;
 
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_default_size (GTK_WINDOW (window), 700, 525);
+  gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
   gtk_window_set_title        (GTK_WINDOW (window), _("Nimf Settings"));
   gtk_window_set_icon_name    (GTK_WINDOW (window), "nimf-logo");
 

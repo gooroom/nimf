@@ -87,7 +87,8 @@ on_menu_about (GSimpleAction *action,
 
   gchar *artists[]     = {_("Hodong Kim <cogniti@gmail.com>"), NULL};
   gchar *authors[]     = {_("Hodong Kim <cogniti@gmail.com>"), NULL};
-  gchar *documenters[] = {_("Hodong Kim <cogniti@gmail.com>"), NULL};
+  gchar *documenters[] = {_("Hodong Kim <cogniti@gmail.com>"),
+                          _("Bumsik Kim <k.bumsik@gmail.com>"), NULL};
 
   parent = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   about_dialog = gtk_about_dialog_new ();
@@ -106,7 +107,7 @@ on_menu_about (GSimpleAction *action,
     "program-name",       _("Nimf"),
     "translator-credits", _("Hodong Kim, N"),
     "version",            VERSION,
-    "website",            "https://github.com/cogniti/nimf",
+    "website",            "https://gitlab.com/nimf-i18n/nimf",
     "website-label",      _("Website"),
     NULL);
 
@@ -293,6 +294,9 @@ nimf_indicator_finalize (GObject *object)
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   NimfIndicator *indicator = NIMF_INDICATOR (object);
+
+  if (indicator->active)
+    nimf_indicator_stop (NIMF_SERVICE (indicator));
 
   g_free (indicator->engine_id);
   g_free (indicator->id);

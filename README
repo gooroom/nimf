@@ -4,9 +4,9 @@ synchronously with the Nimf server via a Unix socket.
 
 Nimf provides:
   * Input Method Server:
-    * nimf-daemon
+    * nimf
   * Language Engines:
-    * Chinese (based on sunpinyin, libchewing, librime)
+    * Chinese (based on librime, libchewing)
     * Japanese (based on anthy)
     * Korean (based on libhangul)
   * Service Modules:
@@ -23,7 +23,7 @@ Nimf provides:
     * C library and headers
 
 Project Homepage:
-  * https://github.com/cogniti/nimf
+  * https://gitlab.com/nimf-i18n/nimf
 
 
 License
@@ -50,11 +50,11 @@ Downloads
 
   * Clone with HTTPS
 
-    git clone https://github.com/cogniti/nimf.git
+    git clone https://gitlab.com/nimf-i18n/nimf.git
 
   * Download tar.gz
 
-    https://github.com/cogniti/nimf/archive/master.tar.gz
+    https://gitlab.com/nimf-i18n/nimf/-/archive/master/nimf-master.tar.gz
 
 
 Compiling and installing
@@ -87,8 +87,8 @@ Compiling and installing
       username:~$ cd
       username:~$ mkdir tmp-build
       username:~$ cd tmp-build
-      username:~/tmp-build$ wget https://github.com/cogniti/nimf/archive/master.tar.gz
-      username:~/tmp-build$ tar zxf master.tar.gz
+      username:~/tmp-build$ wget https://gitlab.com/nimf-i18n/nimf/-/archive/master/nimf-master.tar.gz
+      username:~/tmp-build$ tar zxf nimf-master.tar.gz
       username:~/tmp-build$ cd nimf-master
       username:~/tmp-build/nimf-master$ dpkg-checkbuilddeps
 
@@ -101,6 +101,8 @@ Compiling and installing
       username:~/tmp-build/nimf-master$ debuild
       username:~/tmp-build/nimf-master$ cd ..
       username:~/tmp-build$ ls
+      libnimf0_YYYY.mm.dd_amd64.deb
+      libnimf0-dbgsym_YYYY.mm.dd_amd64.deb
       nimf_YYYY.mm.dd_amd64.build
       nimf_YYYY.mm.dd_amd64.buildinfo
       nimf_YYYY.mm.dd_amd64.changes
@@ -118,15 +120,13 @@ Compiling and installing
       nimf-master
       nimf-rime_YYYY.mm.dd_amd64.deb
       nimf-rime-dbgsym_YYYY.mm.dd_amd64.deb
-      nimf-sunpinyin_YYYY.mm.dd_amd64.deb
-      nimf-sunpinyin-dbgsym_YYYY.mm.dd_amd64.deb
 
     Install deb packages.
 
       username:~/tmp-build$ sudo dpkg -i nimf_YYYY.mm.dd_amd64.deb \
-      nimf-anthy_YYYY.mm.dd_amd64.deb nimf-chewing_YYYY.mm.dd_amd64.deb \
-      nimf-libhangul_YYYY.mm.dd_amd64.deb nimf-rime_YYYY.mm.dd_amd64.deb \
-      nimf-sunpinyin_YYYY.mm.dd_amd64.deb
+      libnimf0_YYYY.mm.dd_amd64.deb nimf-anthy_YYYY.mm.dd_amd64.deb \
+      nimf-chewing_YYYY.mm.dd_amd64.deb nimf-libhangul_YYYY.mm.dd_amd64.deb \
+      nimf-rime_YYYY.mm.dd_amd64.deb
 
     As above mentioned, make the package yourself. Otherwise, request your Linux
     distribution to package Nimf.
@@ -137,8 +137,25 @@ Configure
 
   * For GNOME Shell, use 3rd party gnome-shell-extension-appindicator
 
-    https://extensions.gnome.org/extension/1031/topicons/
-    https://github.com/phocean/TopIcons-plus
+    https://github.com/ubuntu/gnome-shell-extension-appindicator
+    https://extensions.gnome.org/extension/615/appindicator-support/
+
+  * How to enable Nimf on systems using im-config
+
+      im-config -n nimf
+
+  * How to enable Nimf on systems using systemd v233 or later
+
+    Create a file and write the following lines to ~/.config/environment.d/50-nimf.conf
+
+      GTK_IM_MODULE=nimf
+      QT4_IM_MODULE=nimf
+      QT_IM_MODULE=nimf
+      XMODIFIERS=@im=nimf
+
+    Then append the following line to ~/.xprofile
+
+      export $(/usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator)
 
   * Configure Hangul/Hanja key if you use a keyboard without hardware
     Hangul/Hanja key
@@ -151,7 +168,7 @@ Configure
 Debugging
 ---------
 
-  nimf-daemon --start-indicator --debug
+  nimf --start-indicator --debug
   tail -f /var/log/daemon.log
 
   export GTK_IM_MODULE="nimf"
@@ -168,13 +185,13 @@ Participate
   * Development
 
     You may send pull requests.
-    https://github.com/cogniti/nimf/pulls
+    https://gitlab.com/nimf-i18n/nimf/merge_requests
 
   * Translation
 
     You can make nimf.pot using the following commands.
 
-      git clone https://github.com/cogniti/nimf.git
+      git clone https://gitlab.com/nimf-i18n/nimf.git
       cd nimf
       ./autogen.sh
       cd po
@@ -185,6 +202,10 @@ Participate
 
 Support
 -------
+
+  * If you have a problem with Nimf, please report a bug.
+
+    https://gitlab.com/nimf-i18n/nimf/issues/new
 
   * Not Nimf bugs but your application bugs
 
@@ -223,13 +244,12 @@ References
     https://github.com/chewing/libchewing
     https://github.com/choehwanjin/libhangul
     https://github.com/rime/librime
-    https://github.com/sunpinyin/sunpinyin
 
   * Implementations
 
-    https://github.com/choehwanjin/nabi
-    https://github.com/choehwanjin/imhangul
-    https://github.com/choehwanjin/ibus-hangul
+    https://github.com/libhangul/nabi
+    https://github.com/libhangul/imhangul
+    https://github.com/libhangul/ibus-hangul
     https://github.com/ibus/ibus
     https://github.com/fcitx/fcitx
     https://github.com/fcitx/fcitx-qt5
