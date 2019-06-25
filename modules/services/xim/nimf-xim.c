@@ -3,7 +3,7 @@
  * nimf-xim.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -25,67 +25,35 @@
 
 G_DEFINE_DYNAMIC_TYPE (NimfXim, nimf_xim, NIMF_TYPE_SERVICE);
 
-static void nimf_xim_set_engine_by_id (NimfService *service,
-                                       const gchar *engine_id)
+static void
+nimf_xim_change_engine (NimfService *service,
+                        const gchar *engine_id,
+                        const gchar *method_id)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  GHashTableIter iter;
-  gpointer       im;
+  NimfXim       *xim = NIMF_XIM (service);
+  NimfServiceIC *ic;
 
-  g_hash_table_iter_init (&iter, NIMF_XIM (service)->ims);
-
-  while (g_hash_table_iter_next (&iter, NULL, &im))
-    nimf_service_im_set_engine_by_id (im, engine_id);
+  ic = g_hash_table_lookup (xim->ics,
+                            GUINT_TO_POINTER (xim->last_focused_icid));
+  if (ic)
+    nimf_service_ic_change_engine (ic, engine_id, method_id);
 }
 
-static guint16
-nimf_xim_add_im (NimfXim   *xim,
-                 NimfXimIM *xim_im)
+static void
+nimf_xim_change_engine_by_id (NimfService *service,
+                              const gchar *engine_id)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  guint16 icid;
+  NimfXim       *xim = NIMF_XIM (service);
+  NimfServiceIC *ic;
 
-  do
-    icid = xim->next_icid++;
-  while (icid == 0 || g_hash_table_contains (xim->ims,
-                                             GUINT_TO_POINTER (icid)));
-  NIMF_SERVICE_IM (xim_im)->icid = icid;
-  g_hash_table_insert (xim->ims, GUINT_TO_POINTER (icid), xim_im);
-
-  return icid;
-}
-
-static void nimf_xim_set_cursor_location (NimfXim          *xim,
-                                          IMChangeICStruct *data)
-{
-  g_debug (G_STRLOC ": %s", G_STRFUNC);
-
-  NimfServiceIM *im;
-  NimfXimIM     *xim_im;
-  NimfRectangle  area = {0};
-
-  im = g_hash_table_lookup (xim->ims, GUINT_TO_POINTER (data->icid));
-  xim_im = NIMF_XIM_IM (im);
-
-  Window window;
-
-  if (xim_im->focus_window)
-    window = xim_im->focus_window;
-  else
-    window = xim_im->client_window;
-
-  if (window)
-  {
-    Window            child;
-    XWindowAttributes attr;
-    XGetWindowAttributes (xim->display, window, &attr);
-    XTranslateCoordinates(xim->display, window, attr.root,
-                          0, attr.height, &area.x, &area.y, &child);
-  }
-
-  nimf_service_im_set_cursor_location (NIMF_SERVICE_IM (xim_im), &area);
+  ic = g_hash_table_lookup (xim->ics,
+                            GUINT_TO_POINTER (xim->last_focused_icid));
+  if (ic)
+    nimf_service_ic_change_engine_by_id (ic, engine_id);
 }
 
 static int nimf_xim_set_ic_values (NimfXim          *xim,
@@ -93,29 +61,27 @@ static int nimf_xim_set_ic_values (NimfXim          *xim,
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  NimfServiceIM *im;
-  NimfXimIM     *xim_im;
+  NimfServiceIC *ic;
+  NimfXimIC     *xic;
   CARD16 i;
 
-  im = g_hash_table_lookup (xim->ims, GUINT_TO_POINTER (data->icid));
-  xim_im = NIMF_XIM_IM (im);
+  ic = g_hash_table_lookup (xim->ics, GUINT_TO_POINTER (data->icid));
+  xic = NIMF_XIM_IC (ic);
 
   for (i = 0; i < data->ic_attr_num; i++)
   {
     if (!g_strcmp0 (XNInputStyle, data->ic_attr[i].name))
     {
-      xim_im->input_style = (*(CARD32*) data->ic_attr[i].value) & XIMPreeditCallbacks;
-
-      if (xim_im->draw_preedit_on_the_server_side || !xim_im->input_style)
-        nimf_service_im_set_use_preedit (im, FALSE);
+      xic->input_style = *(CARD32*) data->ic_attr[i].value;
+      nimf_service_ic_set_use_preedit (ic, !!(xic->input_style & XIMPreeditCallbacks));
     }
     else if (!g_strcmp0 (XNClientWindow, data->ic_attr[i].name))
     {
-      xim_im->client_window = *(Window *) data->ic_attr[i].value;
+      xic->client_window = *(Window *) data->ic_attr[i].value;
     }
     else if (!g_strcmp0 (XNFocusWindow, data->ic_attr[i].name))
     {
-      xim_im->focus_window = *(Window *) data->ic_attr[i].value;
+      xic->focus_window = *(Window *) data->ic_attr[i].value;
     }
     else
     {
@@ -131,10 +97,10 @@ static int nimf_xim_set_ic_values (NimfXim          *xim,
       switch (state)
       {
         case XIMPreeditEnable:
-          nimf_service_im_set_use_preedit (im, TRUE);
+          nimf_service_ic_set_use_preedit (ic, TRUE);
           break;
         case XIMPreeditDisable:
-          nimf_service_im_set_use_preedit (im, FALSE);
+          nimf_service_ic_set_use_preedit (ic, FALSE);
           break;
         case XIMPreeditUnKnown:
           break;
@@ -144,9 +110,21 @@ static int nimf_xim_set_ic_values (NimfXim          *xim,
           break;
       }
     }
+    else if (g_strcmp0 (XNSpotLocation, data->preedit_attr[i].name) == 0)
+    {
+      nimf_xim_ic_set_cursor_location (xic,
+                                  ((XPoint *) data->preedit_attr[i].value)->x,
+                                  ((XPoint *) data->preedit_attr[i].value)->y);
+      NimfServer      *server      = nimf_server_get_default ();
+      NimfPreeditable *preeditable = nimf_server_get_preeditable (server);
+      if (nimf_preeditable_is_visible (preeditable))
+        nimf_preeditable_show (preeditable);
+    }
     else
+    {
       g_critical (G_STRLOC ": %s: %s is ignored",
                   G_STRFUNC, data->preedit_attr[i].name);
+    }
   }
 
   for (i = 0; i < data->status_attr_num; i++)
@@ -163,14 +141,21 @@ static int nimf_xim_create_ic (NimfXim          *xim,
 {
   g_debug (G_STRLOC ": %s, data->connect_id: %d", G_STRFUNC, data->connect_id);
 
-  NimfXimIM *xim_im;
-  xim_im = g_hash_table_lookup (xim->ims, GUINT_TO_POINTER (data->icid));
+  NimfXimIC *xic;
+  xic = g_hash_table_lookup (xim->ics, GUINT_TO_POINTER (data->icid));
 
-  if (!xim_im)
+  if (!xic)
   {
-    xim_im = nimf_xim_im_new (NIMF_SERVICE (xim)->server, xim);
-    xim_im->connect_id = data->connect_id;
-    data->icid = nimf_xim_add_im (xim, xim_im);
+    guint16 icid;
+
+    do
+      icid = xim->next_icid++;
+    while (icid == 0 ||
+           g_hash_table_contains (xim->ics, GUINT_TO_POINTER (icid)));
+
+    xic = nimf_xim_ic_new (xim, data->connect_id, icid);
+    g_hash_table_insert (xim->ics, GUINT_TO_POINTER (icid), xic);
+    data->icid = icid;
     g_debug (G_STRLOC ": icid = %d", data->icid);
   }
 
@@ -184,7 +169,7 @@ static int nimf_xim_destroy_ic (NimfXim           *xim,
 {
   g_debug (G_STRLOC ": %s, data->icid = %d", G_STRFUNC, data->icid);
 
-  return g_hash_table_remove (xim->ims, GUINT_TO_POINTER (data->icid));
+  return g_hash_table_remove (xim->ics, GUINT_TO_POINTER (data->icid));
 }
 
 static int nimf_xim_get_ic_values (NimfXim          *xim,
@@ -192,8 +177,8 @@ static int nimf_xim_get_ic_values (NimfXim          *xim,
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  NimfServiceIM *im;
-  im = g_hash_table_lookup (xim->ims, GUINT_TO_POINTER (data->icid));
+  NimfServiceIC *ic;
+  ic = g_hash_table_lookup (xim->ics, GUINT_TO_POINTER (data->icid));
   CARD16 i;
 
   for (i = 0; i < data->ic_attr_num; i++)
@@ -203,12 +188,6 @@ static int nimf_xim_get_ic_values (NimfXim          *xim,
       data->ic_attr[i].value_length = sizeof (CARD32);
       data->ic_attr[i].value = g_malloc (sizeof (CARD32));
       *(CARD32 *) data->ic_attr[i].value = KeyPressMask | KeyReleaseMask;
-    }
-    else if (g_strcmp0 (XNSeparatorofNestedList, data->ic_attr[i].name) == 0)
-    {
-      data->ic_attr[i].value_length = sizeof (CARD16);
-      data->ic_attr[i].value = g_malloc (sizeof (CARD16));
-      *(CARD16 *) data->ic_attr[i].value = 0;
     }
     else
       g_critical (G_STRLOC ": %s: %s is ignored",
@@ -222,7 +201,7 @@ static int nimf_xim_get_ic_values (NimfXim          *xim,
       data->preedit_attr[i].value_length = sizeof (XIMPreeditState);
       data->preedit_attr[i].value = g_malloc (sizeof (XIMPreeditState));
 
-      if (im->use_preedit)
+      if (nimf_service_ic_get_use_preedit (ic))
         *(XIMPreeditState *) data->preedit_attr[i].value = XIMPreeditEnable;
       else
         *(XIMPreeditState *) data->preedit_attr[i].value = XIMPreeditDisable;
@@ -273,29 +252,44 @@ static int nimf_xim_forward_event (NimfXim              *xim,
   state = event->key.state & ~consumed;
   event->key.state |= (NimfModifierType) state;
 
-  NimfServiceIM *im;
-  im = g_hash_table_lookup (xim->ims, GUINT_TO_POINTER (data->icid));
-  retval  = nimf_service_im_filter_event (im, event);
+  NimfServiceIC *ic;
+  ic = g_hash_table_lookup (xim->ics, GUINT_TO_POINTER (data->icid));
+  retval  = nimf_service_ic_filter_event (ic, event);
   nimf_event_free (event);
 
   if (G_UNLIKELY (!retval))
     IMForwardEvent (xim->xims, (XPointer) data);
-  else
-    nimf_xim_set_cursor_location (xim, (IMChangeICStruct *) data);
 
   return 1;
+}
+
+static const gchar *
+nimf_xim_get_id (NimfService *service)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  g_return_val_if_fail (NIMF_IS_SERVICE (service), NULL);
+
+  return NIMF_XIM (service)->id;
 }
 
 static int nimf_xim_set_ic_focus (NimfXim             *xim,
                                   IMChangeFocusStruct *data)
 {
-  NimfServiceIM *im;
-  im = g_hash_table_lookup (xim->ims, GUINT_TO_POINTER (data->icid));
+  NimfServiceIC *ic;
+  NimfXimIC     *xic;
+
+  ic  = g_hash_table_lookup (xim->ics, GUINT_TO_POINTER (data->icid));
+  xic = NIMF_XIM_IC (ic);
 
   g_debug (G_STRLOC ": %s, icid = %d, connection id = %d",
-           G_STRFUNC, data->icid, im->icid);
+           G_STRFUNC, data->icid, xic->icid);
 
-  nimf_service_im_focus_in (im);
+  nimf_service_ic_focus_in (ic);
+  xim->last_focused_icid = xic->icid;
+
+  if (xic->input_style & XIMPreeditNothing)
+    nimf_xim_ic_set_cursor_location (xic, -1, -1);
 
   return 1;
 }
@@ -303,12 +297,12 @@ static int nimf_xim_set_ic_focus (NimfXim             *xim,
 static int nimf_xim_unset_ic_focus (NimfXim             *xim,
                                     IMChangeFocusStruct *data)
 {
-  NimfServiceIM *im;
-  im = g_hash_table_lookup (xim->ims, GUINT_TO_POINTER (data->icid));
+  NimfServiceIC *ic;
+  ic = g_hash_table_lookup (xim->ics, GUINT_TO_POINTER (data->icid));
 
   g_debug (G_STRLOC ": %s, icid = %d", G_STRFUNC, data->icid);
 
-  nimf_service_im_focus_out (im);
+  nimf_service_ic_focus_out (ic);
 
   return 1;
 }
@@ -318,9 +312,9 @@ static int nimf_xim_reset_ic (NimfXim         *xim,
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  NimfServiceIM *im;
-  im = g_hash_table_lookup (xim->ims, GUINT_TO_POINTER (data->icid));
-  nimf_service_im_reset (im);
+  NimfServiceIC *ic;
+  ic = g_hash_table_lookup (xim->ics, GUINT_TO_POINTER (data->icid));
+  nimf_service_ic_reset (ic);
 
   return 1;
 }
@@ -393,23 +387,18 @@ static int
 on_xerror (Display     *display,
            XErrorEvent *error)
 {
-  gchar  buf[64];
-  gchar *display_name;
+  gchar buf[64];
 
-  display_name = DisplayString (error->display);
   XGetErrorText (display, error->error_code, buf, 63);
-  g_warning (G_STRLOC ": %s: XError: %s\n"
-             "\ttype: %d, display name: %s, serial: %lu, error_code: %d,\n"
-             "\trequest_code: %d, minor_code: %d, resourceid: %lu\n",
-             G_STRFUNC, buf,
-             error->type,
-             display_name,
-             error->serial,
-             error->error_code,
-             error->request_code,
-             error->minor_code,
-             error->resourceid);
-  g_free (display_name);
+
+  g_warning (G_STRLOC ": %s: %s", G_STRFUNC, buf);
+  g_warning ("type: %d",         error->type);
+  g_warning ("display name: %s", DisplayString (error->display));
+  g_warning ("serial: %lu",      error->serial);
+  g_warning ("error_code: %d",   error->error_code);
+  g_warning ("request_code: %d", error->request_code);
+  g_warning ("minor_code: %d",   error->minor_code);
+  g_warning ("resourceid: %lu",  error->resourceid);
 
   return 1;
 }
@@ -536,15 +525,9 @@ static gboolean nimf_xim_start (NimfService *service)
 
   NimfXim *xim = NIMF_XIM (service);
   XIMS     xims;
-  const gchar *type;
 
   if (xim->active)
     return TRUE;
-
-  type = g_getenv ("XDG_SESSION_TYPE");
-
-  if (type && g_strcmp0 (type, "x11"))
-    return FALSE;
 
   xim->display = XOpenDisplay (NULL);
 
@@ -557,16 +540,83 @@ static gboolean nimf_xim_start (NimfService *service)
   xim->atom_xconnect  = XInternAtom (xim->display, "_XIM_XCONNECT", False);
   xim->atom_protocol  = XInternAtom (xim->display, "_XIM_PROTOCOL", False);
 
+/*
+ * https://www.x.org/releases/X11R7.7/doc/libX11/libX11/libX11.html
+ * https://www.x.org/releases/X11R7.7/doc/libX11/XIM/xim.html
+ *
+ * The preedit category defines what type of support is provided by the input
+ * method for preedit information.
+ *
+ * XIMPreeditArea      (as known as off-the-spot)
+ *
+ * The client application provides display windows for the pre-edit data to the
+ * input method which displays into them directly.
+ * If chosen, the input method would require the client to provide some area
+ * values for it to do its preediting. Refer to XIC values XNArea and
+ * XNAreaNeeded.
+ *
+ * XIMPreeditCallbacks (as known as on-the-spot)
+ *
+ * The client application is directed by the IM Server to display all pre-edit
+ * data at the site of text insertion. The client registers callbacks invoked by
+ * the input method during pre-editing.
+ * If chosen, the input method would require the client to define the set of
+ * preedit callbacks. Refer to XIC values XNPreeditStartCallback,
+ * XNPreeditDoneCallback, XNPreeditDrawCallback, and XNPreeditCaretCallback.
+ *
+ * XIMPreeditPosition  (as known as over-the-spot)
+ *
+ * The input method displays pre-edit data in a window which it brings up
+ * directly over the text insertion position.
+ * If chosen, the input method would require the client to provide positional
+ * values. Refer to XIC values XNSpotLocation and XNFocusWindow.
+ *
+ * XIMPreeditNothing   (as known as root-window)
+ *
+ * The input method displays all pre-edit data in a separate area of the screen
+ * in a window specific to the input method.
+ * If chosen, the input method can function without any preedit values.
+ *
+ * XIMPreeditNone      none
+ *
+ * The input method does not provide any preedit feedback. Any preedit value is
+ * ignored. This style is mutually exclusive with the other preedit styles.
+ *
+ *
+ * The status category defines what type of support is provided by the input
+ * method for status information.
+ *
+ * XIMStatusArea
+ *
+ * The input method requires the client to provide some area values for it to do
+ * its status feedback. See XNArea and XNAreaNeeded.
+ *
+ * XIMStatusCallbacks
+ *
+ * The input method requires the client to define the set of status callbacks,
+ * XNStatusStartCallback, XNStatusDoneCallback, and XNStatusDrawCallback.
+ *
+ * XIMStatusNothing
+ *
+ * The input method can function without any status values.
+ *
+ * XIMStatusNone
+ *
+ * The input method does not provide any status feedback. If chosen, any status
+ * value is ignored. This style is mutually exclusive with the other status
+ * styles.
+ */
+
   XIMStyle im_styles [] = {
-    XIMPreeditPosition  | XIMStatusNothing,
+    /* on-the-spot */
     XIMPreeditCallbacks | XIMStatusNothing,
+    XIMPreeditCallbacks | XIMStatusNone,
+    /* over-the-spot */
+    XIMPreeditPosition  | XIMStatusNothing,
+    XIMPreeditPosition  | XIMStatusNone,
+    /* root-window */
     XIMPreeditNothing   | XIMStatusNothing,
-    XIMPreeditPosition  | XIMStatusCallbacks,
-    XIMPreeditCallbacks | XIMStatusCallbacks,
-    XIMPreeditNothing   | XIMStatusCallbacks,
-    XIMPreeditCallbacks | XIMStatusNone, /* on-the-spot */
-    XIMPreeditNothing   | XIMStatusNone, /* on-root-window */
-    XIMPreeditNone      | XIMStatusNone, /* do not anyhing */
+    XIMPreeditNothing   | XIMStatusNone,
     0
   };
 
@@ -670,27 +720,14 @@ static void nimf_xim_stop (NimfService *service)
   xim->active = FALSE;
 }
 
-static const gchar *
-nimf_xim_get_id (NimfService *service)
-{
-  g_debug (G_STRLOC ": %s", G_STRFUNC);
-
-  g_return_val_if_fail (NIMF_IS_SERVICE (service), NULL);
-
-  return NIMF_XIM (service)->id;
-}
-
 static void
 nimf_xim_init (NimfXim *xim)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  xim->id = g_strdup ("nimf-xim");
-  xim->ims = g_hash_table_new_full (g_direct_hash,
-                                         g_direct_equal,
-                                         NULL,
-                                         (GDestroyNotify) g_object_unref);
-  xim->settings = g_settings_new ("org.nimf.services.xim");
+  xim->id  = g_strdup ("nimf-xim");
+  xim->ics = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL,
+                                    (GDestroyNotify) g_object_unref);
 }
 
 static void nimf_xim_finalize (GObject *object)
@@ -703,9 +740,8 @@ static void nimf_xim_finalize (GObject *object)
   if (nimf_xim_is_active (service))
     nimf_xim_stop (service);
 
-  g_hash_table_unref (xim->ims);
+  g_hash_table_unref (xim->ics);
   g_free (xim->id);
-  g_object_unref (xim->settings);
 
   G_OBJECT_CLASS (nimf_xim_parent_class)->finalize (object);
 }
@@ -718,11 +754,12 @@ nimf_xim_class_init (NimfXimClass *class)
   GObjectClass     *object_class  = G_OBJECT_CLASS (class);
   NimfServiceClass *service_class = NIMF_SERVICE_CLASS (class);
 
-  service_class->get_id           = nimf_xim_get_id;
-  service_class->start            = nimf_xim_start;
-  service_class->stop             = nimf_xim_stop;
-  service_class->is_active        = nimf_xim_is_active;
-  service_class->set_engine_by_id = nimf_xim_set_engine_by_id;
+  service_class->get_id              = nimf_xim_get_id;
+  service_class->start               = nimf_xim_start;
+  service_class->stop                = nimf_xim_stop;
+  service_class->is_active           = nimf_xim_is_active;
+  service_class->change_engine       = nimf_xim_change_engine;
+  service_class->change_engine_by_id = nimf_xim_change_engine_by_id;
 
   object_class->finalize = nimf_xim_finalize;
 }

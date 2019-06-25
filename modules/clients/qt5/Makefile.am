@@ -11,18 +11,17 @@ libqt5im_nimf_la_CXXFLAGS = \
 	$(EXTRA_CFLAGS) \
 	$(LIBNIMF_DEPS_CFLAGS) \
 	-I$(top_srcdir)/libnimf \
-	-I$(top_srcdir)/libnimf/client \
-	-I$(top_srcdir)/libnimf/server \
 	-DG_LOG_DOMAIN=\"nimf\" \
 	-DNIMF_COMPILATION \
-	$(NIMF_QT5_DEPS_CFLAGS) \
+	$(IM_NIMF_QT5_DEPS_CFLAGS) \
 	-I$(QT5_CORE_PRIVATE_INCLUDE_PATH) \
 	-I$(QT5_GUI_PRIVATE_INCLUDE_PATH) \
 	-DQT_NO_KEYWORDS \
-	-fPIC
+	-fPIC \
+	-std=c++11
 
 libqt5im_nimf_la_LDFLAGS = -avoid-version -module \
-	                         $(NIMF_QT5_DEPS_LIBS) \
+	                         $(IM_NIMF_QT5_DEPS_LIBS) \
 	                         $(LIBNIMF_DEPS_LIBS)
 libqt5im_nimf_la_LIBADD  = $(top_builddir)/libnimf/libnimf.la
 

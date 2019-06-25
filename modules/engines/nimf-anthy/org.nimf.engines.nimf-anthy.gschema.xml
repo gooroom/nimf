@@ -7,15 +7,20 @@
       <summary>schema name for nimf-settings</summary>
       <description>This key is intended for nimf-settings.</description>
     </key>
-    <key type="b" name="active">
+    <key type="b" name="active-engine">
       <default>true</default>
       <summary>Active engine</summary>
-      <description>The engine will be loaded on startup if available. Restart required</description>
+      <description>Active engine</description>
     </key>
-    <key type="as" name="trigger-keys">
+    <key type="as" name="shortcuts-to-lang">
       <default>['&lt;Control&gt; &lt;Mod1&gt; j']</default>
-      <summary>Trigger keys for switching Japanese / System</summary>
-      <description>Trigger keys for switching Japanese / System</description>
+      <summary>Shortcuts to switch to Japanese</summary>
+      <description>Shortcuts to switch to Japanese (anthy)</description>
+    </key>
+    <key type="as" name="shortcuts-to-sys">
+      <default>['&lt;Control&gt; &lt;Mod1&gt; j']</default>
+      <summary>Shortcuts from Japanese to system keyboard</summary>
+      <description>Shortcuts from Japanese to system keyboard</description>
     </key>
     <key type="as" name="hiragana-keys">
       <default>['F6']</default>
@@ -27,43 +32,19 @@
       <summary>Hotkey for Katakana</summary>
       <description>Hotkeys for converting to Katakana</description>
     </key>
-    <key type="s" name="input-mode">
-      <choices>
-        <choice value='romaji' /> <!-- Romaji -->
-        <choice value='pc104'  /> <!-- Standard English Keyboard pc104 -->
-      </choices>
+    <key type="s" name="get-method-infos">
       <default>'romaji'</default>
-      <summary>Japanese input mode</summary>
-      <description>Japanese input mode</description>
+      <summary>Input method</summary>
+      <description>Input method</description>
     </key>
-    <key type="s" name="hidden-input-mode-romaji">
-      <default l10n="messages">'Romaji'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-input-mode-pc104">
-      <default l10n="messages">'Kana input on the English Keyboard (pc104)'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="n-input-mode">
+    <key type="s" name="get-n-input-mode-list">
       <choices>
         <choice value='common' />
         <choice value='explicit' />
       </choices>
       <default>'common'</default>
       <summary>n input mode</summary>
-      <description>Choose how you type hiragana letter n.</description>
-    </key>
-    <key type="s" name="hidden-n-input-mode-common">
-      <default l10n="messages">'Common practice'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-n-input-mode-explicit">
-      <default l10n="messages">'Explicitly type nn'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
+      <description>Choose how you type Hiragana letter n.</description>
     </key>
   </schema>
 </schemalist>

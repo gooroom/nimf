@@ -11,13 +11,19 @@
     </key>
     <key type="as" name="hotkeys">
       <default>['&lt;Control&gt; space']</default>
-      <summary>Hotkeys for switching input method engine</summary>
-      <description>Hotkeys for switching input method engine</description>
+      <summary>Hotkeys for rotating input method engines</summary>
+      <description>Hotkeys for rotating input method engines</description>
+    </key>
+    <key type="as" name="hidden-active-engines">
+      <default>['']</default>
+      <summary>active engines</summary>
+      <description>DO NOT EDIT MANUALLY</description>
     </key>
     <key type="b" name="use-singleton">
       <default>true</default>
       <summary>Use singleton mode</summary>
-      <description>Use singleton</description>
+      <description>Create one instance per language engine.
+                   Singleton mode reduces memory usage.</description>
     </key>
   </schema>
   <schema id="org.nimf.services" path="/org/nimf/services/" gettext-domain="nimf">
@@ -36,7 +42,7 @@
   </schema>
   <schema id="org.nimf.engines" path="/org/nimf/engines/" gettext-domain="nimf">
     <key type="s" name="hidden-schema-name">
-      <default l10n="messages">'Engines'</default>
+      <default l10n="messages">'Language engines'</default>
       <summary>schema name for nimf-settings</summary>
       <description>This key is intended for nimf-settings.</description>
     </key>

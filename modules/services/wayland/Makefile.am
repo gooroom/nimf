@@ -10,16 +10,14 @@ BUILT_SOURCES = \
 
 libnimf_wayland_la_SOURCES = \
 	nimf-wayland.c \
-	nimf-wayland-im.c \
-	nimf-wayland-im.h \
+	nimf-wayland-ic.c \
+	nimf-wayland-ic.h \
 	$(BUILT_SOURCES) \
 	$(NULL)
 
 libnimf_wayland_la_CFLAGS = \
 	$(EXTRA_CFLAGS) \
 	-I$(top_srcdir)/libnimf \
-	-I$(top_srcdir)/libnimf/client \
-	-I$(top_srcdir)/libnimf/server \
 	-DG_LOG_DOMAIN=\"nimf\" \
 	$(NIMF_WAYLAND_DEPS_CFLAGS)
 

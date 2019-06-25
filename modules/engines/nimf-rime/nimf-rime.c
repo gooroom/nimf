@@ -3,7 +3,7 @@
  * nimf-rime.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2016-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2016-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -62,7 +62,7 @@ static gint nimf_rime_ref_count = 0;
 G_DEFINE_DYNAMIC_TYPE (NimfRime, nimf_rime, NIMF_TYPE_ENGINE);
 
 static void nimf_rime_update_preedit (NimfEngine    *engine,
-                                      NimfServiceIM *target,
+                                      NimfServiceIC *target,
                                       const gchar   *new_preedit,
                                       gint           cursor_pos)
 {
@@ -70,18 +70,21 @@ static void nimf_rime_update_preedit (NimfEngine    *engine,
 
   NimfRime *rime = NIMF_RIME (engine);
 
-  if (rime->preedit_state == NIMF_PREEDIT_STATE_END && rime->preedit->len > 0)
+  if (rime->preedit_state == NIMF_PREEDIT_STATE_END && new_preedit[0] != 0)
   {
     rime->preedit_state = NIMF_PREEDIT_STATE_START;
     nimf_engine_emit_preedit_start (engine, target);
   }
 
-  g_string_assign (rime->preedit, new_preedit);
-  rime->cursor_pos = cursor_pos;
-  rime->preedit_attrs[0]->start_index = 0;
-  rime->preedit_attrs[0]->end_index = g_utf8_strlen (rime->preedit->str, -1);
-  nimf_engine_emit_preedit_changed (engine, target, rime->preedit->str,
-                                    rime->preedit_attrs, cursor_pos);
+  if (rime->preedit->len > 0 || new_preedit[0] != 0)
+  {
+    g_string_assign (rime->preedit, new_preedit);
+    rime->cursor_pos = cursor_pos;
+    rime->preedit_attrs[0]->start_index = 0;
+    rime->preedit_attrs[0]->end_index = g_utf8_strlen (rime->preedit->str, -1);
+    nimf_engine_emit_preedit_changed (engine, target, rime->preedit->str,
+                                      rime->preedit_attrs, cursor_pos);
+  }
 
   if (rime->preedit_state == NIMF_PREEDIT_STATE_START && rime->preedit->len == 0)
   {
@@ -91,7 +94,7 @@ static void nimf_rime_update_preedit (NimfEngine    *engine,
 }
 
 void nimf_rime_reset (NimfEngine    *engine,
-                      NimfServiceIM *target)
+                      NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -104,14 +107,14 @@ void nimf_rime_reset (NimfEngine    *engine,
 
 void
 nimf_rime_focus_in (NimfEngine    *engine,
-                    NimfServiceIM *context)
+                    NimfServiceIC *context)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 }
 
 void
 nimf_rime_focus_out (NimfEngine    *engine,
-                     NimfServiceIM *target)
+                     NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -121,7 +124,7 @@ nimf_rime_focus_out (NimfEngine    *engine,
 
 static void
 nimf_rime_update_candidate (NimfEngine    *engine,
-                            NimfServiceIM *target)
+                            NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -161,7 +164,7 @@ nimf_rime_update_candidate (NimfEngine    *engine,
 }
 
 static void nimf_rime_update_preedit2 (NimfEngine    *engine,
-                                       NimfServiceIM *target)
+                                       NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -191,7 +194,7 @@ static void nimf_rime_update_preedit2 (NimfEngine    *engine,
 }
 
 static void nimf_rime_update (NimfEngine    *engine,
-                              NimfServiceIM *target)
+                              NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -236,7 +239,7 @@ static void nimf_rime_update (NimfEngine    *engine,
 
 static void
 on_candidate_clicked (NimfEngine    *engine,
-                      NimfServiceIM *target,
+                      NimfServiceIC *target,
                       gchar         *text,
                       gint           index)
 {
@@ -264,7 +267,7 @@ on_candidate_clicked (NimfEngine    *engine,
 }
 
 static gboolean
-nimf_rime_page_up (NimfEngine *engine, NimfServiceIM *target)
+nimf_rime_page_up (NimfEngine *engine, NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -275,7 +278,7 @@ nimf_rime_page_up (NimfEngine *engine, NimfServiceIM *target)
 }
 
 static gboolean
-nimf_rime_page_down (NimfEngine *engine, NimfServiceIM *target)
+nimf_rime_page_down (NimfEngine *engine, NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -287,7 +290,7 @@ nimf_rime_page_down (NimfEngine *engine, NimfServiceIM *target)
 
 static void
 on_candidate_scrolled (NimfEngine    *engine,
-                       NimfServiceIM *target,
+                       NimfServiceIC *target,
                        gdouble        value)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -314,7 +317,7 @@ on_candidate_scrolled (NimfEngine    *engine,
 
 gboolean
 nimf_rime_filter_event (NimfEngine    *engine,
-                        NimfServiceIM *target,
+                        NimfServiceIC *target,
                         NimfEvent     *event)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -367,6 +370,16 @@ static void on_notification (void          *context_object,
               g_settings_get_boolean (rime->settings, "simplification"))
       g_settings_set_boolean (rime->settings, "simplification", FALSE);
   }
+  else if (!g_strcmp0 (message_type, "deploy"))
+  {
+    if (!g_strcmp0 (message_value, "start"))
+      g_message ("Rime is under maintenance ...");
+    else if (!g_strcmp0 (message_value, "success"))
+      g_message ("Rime is ready.");
+    else if (!g_strcmp0 (message_value, "failure"))
+      g_warning ("Rime has encountered an error. "
+                 "See /tmp/nimf-rime.WARNING for details.");
+  }
 }
 
 static void
@@ -386,6 +399,13 @@ nimf_rime_init (NimfRime *rime)
   if (nimf_rime_ref_count == 0)
   {
     gchar *user_data_dir;
+    static gboolean logging = FALSE;
+
+    if (logging == FALSE)
+    {
+      RimeSetupLogging ("nimf-rime");
+      logging = TRUE;
+    }
 
     user_data_dir = g_strconcat (g_getenv ("HOME"), "/.config/nimf/rime", NULL);
 
@@ -398,8 +418,8 @@ nimf_rime_init (NimfRime *rime)
     traits.user_data_dir          = user_data_dir;
     traits.distribution_name      = _("Rime");
     traits.distribution_code_name = "nimf-rime";
-    traits.distribution_version   = "1.2";
-    traits.app_name               = "rime.nimf";
+    traits.distribution_version   = rime_get_api()->get_version();
+    traits.app_name               = "nimf-rime";
 
     RimeInitialize (&traits);
     RimeStartMaintenance (False);

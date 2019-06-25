@@ -7,76 +7,25 @@
       <summary>schema name for nimf-settings</summary>
       <description>This key is intended for nimf-settings.</description>
     </key>
-    <key type="b" name="active">
+    <key type="b" name="active-engine">
       <default>true</default>
       <summary>Active engine</summary>
-      <description>The engine will be loaded on startup if available. Restart required</description>
+      <description>Active engine</description>
     </key>
-    <key type="s" name="layout">
-      <choices>
-        <choice value='2'   /> <!-- Dubeolsik -->
-        <choice value='2y'  /> <!-- Dubeolsik Yetgeul -->
-        <choice value='ahn' /> <!-- Ahnmatae -->
-        <choice value='3f'  /> <!-- Sebeolsik Final -->
-        <choice value='39'  /> <!-- Sebeolsik 390 -->
-        <choice value='3s'  /> <!-- Sebeolsik Noshift -->
-        <choice value='3y'  /> <!-- Sebeolsik Yetgeul -->
-        <choice value='32'  /> <!-- Sebeolsik Dubeol Layout -->
-        <choice value='ro'  /> <!-- Romaja -->
-      </choices>
+    <key type="s" name="get-method-infos">
       <default>'2'</default>
-      <summary>Korean keyboard layout</summary>
-      <description>Korean keyboard layout</description>
+      <summary>Input method</summary>
+      <description>Input method</description>
     </key>
-    <key type="s" name="hidden-layout-2">
-      <default l10n="messages">'Dubeolsik'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-layout-2y">
-      <default l10n="messages">'Dubeolsik Yetgeul'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-layout-ahn">
-      <default l10n="messages">'Ahnmatae'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-layout-3f">
-      <default l10n="messages">'Sebeolsik Final'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-layout-39">
-      <default l10n="messages">'Sebeolsik 390'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-layout-3s">
-      <default l10n="messages">'Sebeolsik Noshift'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-layout-3y">
-      <default l10n="messages">'Sebeolsik Yetgeul'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-layout-32">
-      <default l10n="messages">'Sebeolsik Dubeol Layout'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="s" name="hidden-layout-ro">
-      <default l10n="messages">'Romaja'</default>
-      <summary>key value for UI l10n</summary>
-      <description>This key is intended for nimf-settings.</description>
-    </key>
-    <key type="as" name="trigger-keys">
+    <key type="as" name="shortcuts-to-lang">
       <default>['Hangul']</default>
-      <summary>Trigger keys for switching Korean / System</summary>
-      <description>Binding to change Korean / System</description>
+      <summary>Shortcuts to switch to Korean</summary>
+      <description>Shortcuts to switch to Korean (libhangul)</description>
+    </key>
+    <key type="as" name="shortcuts-to-sys">
+      <default>['Hangul']</default>
+      <summary>Shortcuts from Korean to system keyboard</summary>
+      <description>Shortcuts from Korean to system keyboard</description>
     </key>
     <key type="as" name="hanja-keys">
       <default>['Hangul_Hanja']</default>
@@ -86,7 +35,7 @@
     <key type="b" name="double-consonant-rule">
       <default>false</default>
       <summary>Use a rule composing double consonants</summary>
-      <description>compose a double consonant on pressing same consonant twice</description>
+      <description>Compose a double consonant on pressing same consonant twice</description>
     </key>
     <key type="b" name="auto-reordering">
       <default>false</default>

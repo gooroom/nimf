@@ -1,3 +1,317 @@
+nimf (2019.06.23) stable; urgency=medium
+
+  * Fixed backward compatibility for m17n-db (#273)
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 23 Jun 2019 21:42:16 +0900
+
+nimf (2019.06.22) stable; urgency=medium
+
+  * Fixed preedit window location
+  * Fixed nimf-xim not starting in the Xwayland environment (#272)
+
+ -- Hodong Kim <cogniti@gmail.com>  Sat, 22 Jun 2019 19:10:34 +0900
+
+nimf (2019.06.21) stable; urgency=medium
+
+  * Redesigned shortcuts (closes #272)
+  * im-nimf-qt5: Fixed lt major version
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 21 Jun 2019 10:05:24 +0900
+
+nimf (2019.06.07) stable; urgency=medium
+
+  * Updated some docs
+  * Added signals: "engine-loaded", "engine-unloaded"
+  * Code cleanup
+  * Check if GNOME is running
+  * Added missing org.nimf.settings.gschema.xml
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 07 Jun 2019 06:57:33 +0900
+
+nimf (2019.06.06) stable; urgency=medium
+
+  * Fixed how to apply xkb options (#269)
+  * Fixed #267
+  * nimf-rime: Fixed preedit state
+
+ -- Hodong Kim <cogniti@gmail.com>  Thu, 06 Jun 2019 00:02:01 +0900
+
+nimf (2019.06.05) stable; urgency=medium
+
+  * nimf-rime: Fixed preedit state
+  * Fixed how to apply xkb options (closes #269)
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 05 Jun 2019 10:49:15 +0900
+
+nimf (2019.06.03) stable; urgency=medium
+
+  * Updated translations
+  * Load module dynamically
+
+ -- Hodong Kim <cogniti@gmail.com>  Mon, 03 Jun 2019 01:46:30 +0900
+
+nimf (2019.05.29) stable; urgency=medium
+
+  * nimf-anthy: Fixed a potential bug
+  * nimf-settings: Changed the XKB Options UI position
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 29 May 2019 08:47:12 +0900
+
+nimf (2019.05.17) stable; urgency=medium
+
+  * Added dependencies on m17n (>= 1.8.0)
+  * Removed nimf-m17n-en
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 17 May 2019 23:46:58 +0900
+
+nimf (2019.05.15) stable; urgency=medium
+
+  * Redesign nimf-m17n
+  * nimf-settings: Fixed potential bugs
+  * "Renamed "active" to "active-engine"
+  * Fixed possible faults
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 15 May 2019 00:59:16 +0900
+
+nimf (2019.05.10) stable; urgency=medium
+
+  * Fixed possible faults
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 10 May 2019 18:27:45 +0900
+
+nimf (2019.05.09) stable; urgency=medium
+
+  * nimf-indicator: Fixed possible faults
+  * nimf-settings: Sort by language
+  * nimf-server: Sort by language
+
+ -- Hodong Kim <cogniti@gmail.com>  Thu, 09 May 2019 20:34:37 +0900
+
+nimf (2019.05.08) stable; urgency=medium
+
+  * nimf-settings: Fixed invalid type
+  * nimf-settings: Sort by language
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 08 May 2019 21:05:24 +0900
+
+nimf (2019.04.21) stable; urgency=medium
+
+  * Fixed debian/control
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 21 Apr 2019 00:34:57 +0900
+
+nimf (2019.04.20) stable; urgency=medium
+
+  * Updated descriptions
+  * Fixed reference address
+
+ -- Hodong Kim <cogniti@gmail.com>  Sat, 20 Apr 2019 14:25:27 +0900
+
+nimf (2019.03.31) stable; urgency=medium
+
+  * Fixed website address
+  * Fixed the duplicate about dialog
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 31 Mar 2019 01:46:52 +0900
+
+nimf (2019.03.27) stable; urgency=medium
+
+  * Added nimf reference manual (closes #266)
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 27 Mar 2019 00:34:01 +0900
+
+nimf (2019.03.17) stable; urgency=medium
+
+  * Fixed how to display the preeditable
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 17 Mar 2019 05:15:55 +0900
+
+nimf (2019.03.15) stable; urgency=medium
+
+  * nimf-xim: Fixed input styles (closes #150)
+  * nimf-xim: Fixed a segmentation fault
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 15 Mar 2019 22:46:05 +0900
+
+nimf (2019.02.25) stable; urgency=medium
+
+  * Delay the launch of the nimf-indicator until the watcher is ready
+
+ -- Hodong Kim <cogniti@gmail.com>  Mon, 25 Feb 2019 00:40:11 +0900
+
+nimf (2019.02.24) stable; urgency=medium
+
+  * Fixed that the indicator does not appear in MATE (closes #267)
+  * Updated icons
+  * Fixed watcher name
+    Cinnamon doesn't provide "org.kde.StatusNotifierWatcher"
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 24 Feb 2019 00:07:52 +0900
+
+nimf (2019.02.23) stable; urgency=medium
+
+  * Added missig nimf_xim_set_engine()
+  * Detached nimf-nim service from nimf-server
+  * Added nimf_server_get_default()
+  * Handle XNSpotLocation (#266)
+  * Added nimf_preeditable_is_visible()
+  * Fixed translator-credits
+  * nimf-anthy: Added submenu
+  * nimf-libhangul: Fixed localization
+
+ -- Hodong Kim <cogniti@gmail.com>  Sat, 23 Feb 2019 00:18:12 +0900
+
+nimf (2019.02.21) stable; urgency=medium
+
+  * Fixed: an unresolvable reference
+
+ -- Hodong Kim <cogniti@gmail.com>  Thu, 21 Feb 2019 00:02:34 +0900
+
+nimf (2019.02.20) stable; urgency=medium
+
+  * Fixed emitting invalid "engine-changed" signal
+  * Display submenu in the indicator
+  * nimf-indicator: Fixed not working on Cinnamon
+  * Added *_set_engine()
+  * Added nimf_connection_set_engine()
+  * Added nimf_engine_set_method()
+  * Added NimfEngineInfo
+  * Fixed changing engine (closes #260)
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 20 Feb 2019 23:14:21 +0900
+
+nimf (2019.02.17) stable; urgency=medium
+
+  * nimf-qt4: Added "reset-on-mouse-button-press" option
+  * nimf-qt4: support for surrounding text
+  * nimf-qt5: support for surrounding text
+  * NimfEventKey: Fixed data types
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 17 Feb 2019 12:50:10 +0900
+
+nimf (2019.02.15) stable; urgency=medium
+
+  * nimf-m17n: Fixed segmentation fault (close #264)
+  * nimf-m17n: Fixed updating preedit string
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 15 Feb 2019 00:38:01 +0900
+
+nimf (2019.02.14) stable; urgency=medium
+
+  * nimf-libhangul: Improved Hanja conversion (closes #217)
+
+ -- Hodong Kim <cogniti@gmail.com>  Thu, 14 Feb 2019 00:11:47 +0900
+
+nimf (2019.02.13) stable; urgency=medium
+
+  * Added nimf-m17n engine (closes #143)
+  * nimf-settings: Added "get-input-methods" for nimf-m17n
+  * Fixed wrong cursor_index
+  * Removed unused get_surrounding APIs
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 13 Feb 2019 17:21:54 +0900
+
+nimf (2019.01.23) stable; urgency=medium
+
+  * debian: Add missing org.nimf.settings.gschema.xml
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 23 Jan 2019 13:41:19 +0900
+
+nimf (2019.01.22) stable; urgency=medium
+
+  * nimf-settings: Forced GDK backend to x11 (#105)
+    because of the Xwayland environment
+
+ -- Hodong Kim <cogniti@gmail.com>  Tue, 22 Jan 2019 22:37:27 +0900
+
+nimf (2019.01.21) stable; urgency=medium
+
+  * Support for xkb options (closes #105)
+  * Added nimf-settings.desktop
+  * Removed nimf-chewing (closes #140)
+    Use nimf-rime with bopomofo
+  * nimf-rime: Print deploy messages
+  * Update translations for singleton mode #147
+
+ -- Hodong Kim <cogniti@gmail.com>  Mon, 21 Jan 2019 23:34:30 +0900
+
+nimf (2018.12.05) stable; urgency=medium
+
+  * Fixed cursor location
+  * Fixed wrong candidate window location (resolves #83)
+    Support multiple monitors
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 05 Dec 2018 02:29:11 +0900
+
+nimf (2018.12.04) stable; urgency=medium
+
+  * Fixed wrong candidate window location (resolves #83)
+
+ -- Hodong Kim <cogniti@gmail.com>  Tue, 04 Dec 2018 04:55:50 +0900
+
+nimf (2018.12.01) stable; urgency=medium
+
+  * Use g_bus_watch_name() (resolves #147)
+
+ -- Hodong Kim <cogniti@gmail.com>  Sat, 01 Dec 2018 12:34:33 +0900
+
+nimf (2018.11.27) stable; urgency=medium
+
+  * Fixed wrong cursor location on HiDPI (resolves #44)
+
+ -- Hodong Kim <cogniti@gmail.com>  Tue, 27 Nov 2018 11:39:00 +0900
+
+nimf (2018.11.26) stable; urgency=medium
+
+  * Fixed dynamic loading for Telegram (resolves #16)
+  * Use fcntl() instead of flock() (resolves #147)
+
+ -- Hodong Kim <cogniti@gmail.com>  Mon, 26 Nov 2018 11:18:53 +0900
+
+nimf (2018.11.21) stable; urgency=medium
+
+  * im-nimf-qt5: if (m_im == NULL) return false;
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 21 Nov 2018 10:07:33 +0900
+
+nimf (2018.11.20.1) stable; urgency=medium
+
+  * Turn off USE_DLFCN by default
+
+ -- Hodong Kim <cogniti@gmail.com>  Tue, 20 Nov 2018 07:57:05 +0900
+
+nimf (2018.11.20) stable; urgency=medium
+
+  * Fixed dynamic loading for Telegram (resolves #16)
+  * Fixed displaying preedit text (closes #144)
+
+ -- Hodong Kim <cogniti@gmail.com>  Tue, 20 Nov 2018 07:37:44 +0900
+
+nimf (2018.11.19) stable; urgency=medium
+
+  * Initialize indicator once (fixed #147)
+
+ -- Hodong Kim <cogniti@gmail.com>  Mon, 19 Nov 2018 03:59:09 +0900
+
+nimf (2018.08.31) stable; urgency=medium
+
+  * Delete legal notices and disclaimers
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 31 Aug 2018 02:00:58 +0900
+
+nimf (2018.08.29) stable; urgency=medium
+
+  * Fixed compile errors on Fedora
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 29 Aug 2018 03:16:30 +0900
+
+nimf (2018.08.28) stable; urgency=medium
+
+  * 법적 고지 및 면책 조항 추가
+  * Added --disable-hardening option (closes #139)
+
+ -- Hodong Kim <cogniti@gmail.com>  Tue, 28 Aug 2018 23:11:38 +0900
+
 nimf (2018.08.21) stable; urgency=medium
 
   * Removed --no-daemon option (closes #138)

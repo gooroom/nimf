@@ -1,6 +1,6 @@
 Name:     nimf
 Summary:  An input method framework
-Version:  2018.08.21
+Version:  2019.06.23
 Release:  1%{?dist}
 License:  LGPLv3+
 Group:    User Interface/Desktops
@@ -23,22 +23,23 @@ BuildRequires: noto-sans-cjk-fonts
 BuildRequires: libhangul-devel
 BuildRequires: anthy-devel
 BuildRequires: anthy
-BuildRequires: libchewing-devel
 BuildRequires: librime-devel >= 1.2.9
 BuildRequires: libxkbcommon-devel
 BuildRequires: wayland-devel
+BuildRequires: libxklavier-devel
+BuildRequires: m17n-lib-devel
+BuildRequires: m17n-db
+BuildRequires: gtk-doc
 
 Requires:         im-chooser
-Requires:         anthy
+Requires:         anthy, libm17n0, m17n-db
 Requires(post):   %{_sbindir}/alternatives
 Requires(postun): %{_sbindir}/alternatives
 
 %define _xinputconf %{_sysconfdir}/X11/xinit/xinput.d/nimf.conf
 
 %description
-Nimf is an input method framework which has a module-based client-server
-architecture in which an application acts as a client and communicates
-synchronously with the Nimf server via a unix socket.
+Nimf is a lightweight, fast and extensible input method framework.
 
 %package devel
 Summary:  Development files for nimf
@@ -54,7 +55,7 @@ This package contains development files.
 %setup -q
 
 %build
-./autogen.sh --prefix=/usr --libdir=%{_libdir} --with-imsettings-data
+./autogen.sh --prefix=/usr --libdir=%{_libdir} --with-imsettings-data --enable-gtk-doc
 make %{?_smp_mflags}
 
 %install
@@ -91,7 +92,6 @@ fi
 %files
 %config %{_xinputconf}
 %config %{_sysconfdir}/apparmor.d/abstractions/nimf
-%config %{_sysconfdir}/xdg/autostart/nimf.desktop
 %{_bindir}/*
 %{_libdir}/gtk-2.0/*
 %{_libdir}/gtk-3.0/*
@@ -99,16 +99,19 @@ fi
 %{_libdir}/nimf/*
 %{_libdir}/qt4/*
 %{_libdir}/qt5/*
+%{_datadir}/applications/*
 %{_datadir}/glib-2.0/*
 %{_datadir}/icons/*
 %{_datadir}/locale/*
 %{_datadir}/man/*
+%{_sysconfdir}/xdg/autostart/*
 
 %files devel
+%{_datadir}/gtk-doc/*
 %{_includedir}/*
 %{_libdir}/libnimf.so
 %{_libdir}/pkgconfig/*
 
 %changelog
-* Tue Aug 21 2018 Hodong Kim <cogniti@gmail.com> - 2018.08.21-1
+* Sun Jun 23 2019 Hodong Kim <cogniti@gmail.com> - 2019.06.23-1
 - See https://gitlab.com/nimf-i18n/nimf/blob/master/debian/changelog
