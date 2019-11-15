@@ -429,20 +429,29 @@ nimf_libhangul_filter_event (NimfEngine    *engine,
       if (hangul->preedit_string[0] == 0)
       {
         gchar *text;
+        gint   length;
         gint   cursor_pos;
 
         nimf_engine_get_surrounding (engine, target, &text, &cursor_pos);
 
-        if (text && cursor_pos > 0)
-        {
-          gchar *p = g_utf8_offset_to_pointer (text, cursor_pos - 1);
-          g_utf8_strncpy (item, p, 1);
+        if (text == NULL)
+          return FALSE;
 
-          if (g_utf8_validate (item, -1, NULL))
-            key = item;
-        }
+        length = g_utf8_strlen (text, -1);
+
+        if (length == 0)
+          return FALSE;
+
+        gchar *p = g_utf8_offset_to_pointer (text, cursor_pos);
+        g_utf8_strncpy (item, p, 1);
+
+        if (g_utf8_validate (item, -1, NULL))
+          key = item;
 
         g_free (text);
+
+        if (length == cursor_pos)
+          return FALSE;
       }
 
       hanja_list_delete (hangul->hanja_list);
@@ -451,6 +460,9 @@ nimf_libhangul_filter_event (NimfEngine    *engine,
 
       if (hangul->hanja_list == NULL)
         hangul->hanja_list = hanja_table_match_exact (nimf_libhangul_symbol_table, key);
+
+      if (hangul->hanja_list == NULL)
+	      return FALSE;
 
       hangul->n_pages = (hanja_list_get_size (hangul->hanja_list) + 9) / 10;
       hangul->current_page = 1;
