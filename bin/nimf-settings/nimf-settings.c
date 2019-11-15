@@ -27,6 +27,15 @@
 #include "nimf.h"
 #include "nimf-enum-types-private.h"
 #include "nimf-utils-private.h"
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#define EXPORT_ENVIRONMENT "export $(/usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator)"
+#define INPUT_CONF         "50-input.conf"
 
 #define NIMF_TYPE_SETTINGS             (nimf_settings_get_type ())
 #define NIMF_SETTINGS(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), NIMF_TYPE_SETTINGS, NimfSettings))
@@ -53,10 +62,7 @@ struct _NimfSettings
 {
   GObject parent_instance;
 
-  GApplication          *app;
-  GPtrArray             *pages;
-  GSettingsSchemaSource *schema_source; /* do not free */
-  NimfXkb               *xkb;
+  GApplication *app;
 };
 
 struct _NimfSettingsClass
@@ -74,7 +80,6 @@ typedef struct _NimfSettingsPage
 {
   GSettings *gsettings;
   GtkWidget *box;
-  gchar     *title;
   GPtrArray *page_keys;
 } NimfSettingsPage;
 
@@ -86,11 +91,10 @@ typedef struct _NimfSettingsPageKey {
 } NimfSettingsPageKey;
 
 static GtkWidget *nimf_settings_window = NULL;
-static GtkWidget *default_engine_combo = NULL;
 
 G_DEFINE_TYPE (NimfSettings, nimf_settings, G_TYPE_OBJECT);
 
-gboolean
+static gboolean
 on_foreach (GtkTreeModel *model,
             GtkTreePath  *path,
             GtkTreeIter  *iter,
@@ -115,88 +119,6 @@ on_foreach (GtkTreeModel *model,
 }
 
 static void
-update_default_engine_list (GSettings *settings,
-                            gchar     *key,
-                            GtkWidget *widget)
-{
-  GtkTreeStore *store;
-  const gchar   *active_id;
-  const gchar   *id;
-  GtkTreeIter    iter, new_iter;
-  gchar         *name2;
-  gboolean       active;
-
-  active_id = gtk_combo_box_get_active_id (GTK_COMBO_BOX (default_engine_combo));
-  id        = gtk_widget_get_name (widget);
-  active    = g_settings_get_boolean (settings, "active-engine");
-  name2     = g_settings_get_string  (settings, "hidden-schema-name");
-
-  store = (GtkTreeStore *) gtk_combo_box_get_model (GTK_COMBO_BOX (default_engine_combo));
-  gtk_tree_model_get_iter_first (GTK_TREE_MODEL (store), &iter);
-
-  if (active == FALSE)
-  {
-    do {
-      gchar *name1;
-      gint   retval;
-
-      gtk_tree_model_get (GTK_TREE_MODEL (store), &iter, 0, &name1, -1);
-      retval = g_utf8_collate (name1, name2);
-
-      g_free (name1);
-
-      if (retval == 0)
-      {
-        gtk_tree_store_remove (store, &iter);
-        break;
-      }
-    } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter));
-  }
-  else
-  {
-    gtk_tree_model_get_iter_first (GTK_TREE_MODEL (store), &iter);
-
-    while (TRUE)
-    {
-      gchar *name1;
-      gint   retval;
-
-      gtk_tree_model_get (GTK_TREE_MODEL (store), &iter, 0, &name1, -1);
-      retval = g_utf8_collate (name1, name2);
-
-      g_free (name1);
-
-      if (retval < 0)
-      {
-        if (gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter) == FALSE)
-        {
-          gtk_tree_store_append (store, &new_iter, NULL);
-          gtk_tree_store_set (store, &new_iter, 0, name2, 1, id, -1);
-          break;
-        }
-
-        continue;
-      }
-      else if (retval > 0)
-      {
-        gtk_tree_store_insert_before (store, &new_iter, NULL, &iter);
-        gtk_tree_store_set (store, &new_iter, 0, name2, 1, id, -1);
-        break;
-      }
-      else
-      {
-        break;
-      }
-    }
-  }
-
-  g_free (name2);
-
-  if (gtk_combo_box_set_active_id (GTK_COMBO_BOX (default_engine_combo), active_id) == FALSE)
-    gtk_combo_box_set_active_id (GTK_COMBO_BOX (default_engine_combo), "nimf-system-keyboard");
-}
-
-static void
 on_gsettings_changed (GSettings *settings,
                       gchar     *key,
                       GtkWidget *widget)
@@ -208,9 +130,6 @@ on_gsettings_changed (GSettings *settings,
 
     if (active1 != active2)
       gtk_switch_set_active (GTK_SWITCH (widget), active1);
-
-    if (g_strcmp0 (key, "active-engine") == 0)
-      update_default_engine_list (settings, key, widget);
   }
   else if (GTK_IS_COMBO_BOX (widget))
   {
@@ -270,7 +189,21 @@ on_comparison (const char *a,
 
     source = g_settings_schema_source_get_default ();
     schema_a = g_settings_schema_source_lookup (source, a, FALSE);
+
+    if (schema_a == NULL)
+    {
+      g_warning (G_STRLOC ": %s: %s is not found.", G_STRFUNC, a);
+      return g_strcmp0 (a, b);
+    }
+
     schema_b = g_settings_schema_source_lookup (source, b, FALSE);
+
+    if (schema_b == NULL)
+    {
+      g_warning (G_STRLOC ": %s: %s is not found.", G_STRFUNC, b);
+      return g_strcmp0 (a, b);
+    }
+
     key_a = g_settings_schema_get_key (schema_a, "hidden-schema-name");
     key_b = g_settings_schema_get_key (schema_b, "hidden-schema-name");
     variant_a = g_settings_schema_key_get_default_value (key_a);
@@ -311,7 +244,7 @@ on_combo_box_changed (GtkComboBox        *widget,
   g_free (id2);
 }
 
-gboolean
+static gboolean
 on_finding (gconstpointer a,
             gconstpointer b)
 {
@@ -378,27 +311,6 @@ on_notify_active (GtkSwitch           *widget,
 
   if (active1 != active2)
     g_settings_set_boolean (page_key->gsettings, page_key->key, active1);
-}
-
-void
-on_cursor_changed (GtkTreeView *tree_view,
-                   GtkStack    *stack)
-{
-  GtkTreeSelection *selection; /* do not free */
-  GtkTreeModel     *model;
-  gchar            *text = NULL;
-  GtkTreeIter       iter;
-
-  selection = gtk_tree_view_get_selection (tree_view);
-
-  if (gtk_tree_selection_get_selected (selection, &model, &iter))
-    gtk_tree_model_get (model, &iter, SCHEMA_COLUMN, &text, -1);
-
-  if (text)
-  {
-    gtk_stack_set_visible_child_name (stack, text);
-    g_free (text);
-  }
 }
 
 static NimfSettingsPageKey *
@@ -480,23 +392,23 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
   gtk_combo_box_set_id_column (GTK_COMBO_BOX (combo), 1);
   gtk_tree_model_get_iter_first ((GtkTreeModel *) store, &iter);
 
-  if (g_strcmp0 (schema_id, "org.nimf.engines") == 0 &&
-      g_strcmp0 (page_key->key, "default-engine") == 0)
+  if (!g_strcmp0 (schema_id, "org.nimf.engines") &&
+      !g_strcmp0 (page_key->key, "default-engine"))
   {
     GSettingsSchemaSource *schema_source;
     GList                 *schema_list = NULL;
-    gchar                **non_relocatable;
+    gchar                **schemas;
     gchar                 *id1;
     gint                   i;
-    default_engine_combo = combo;
+
     id1 = g_settings_get_string (page_key->gsettings, page_key->key);
     schema_source = g_settings_schema_source_get_default ();
     g_settings_schema_source_list_schemas (schema_source, TRUE,
-                                           &non_relocatable, NULL);
+                                           &schemas, NULL);
 
-    for (i = 0; non_relocatable[i] != NULL; i++)
-      if (g_str_has_prefix (non_relocatable[i], "org.nimf.engines."))
-        schema_list = g_list_prepend (schema_list, non_relocatable[i]);
+    for (i = 0; schemas[i] != NULL; i++)
+      if (g_str_has_prefix (schemas[i], "org.nimf.engines."))
+        schema_list = g_list_prepend (schema_list, schemas[i]);
 
     for (schema_list = g_list_sort (schema_list, (GCompareFunc) on_comparison);
          schema_list != NULL;
@@ -533,7 +445,7 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
                                    "nimf-system-keyboard");
     }
 
-    g_strfreev (non_relocatable);
+    g_strfreev (schemas);
     g_list_free (schema_list);
     g_free (id1);
   }
@@ -868,30 +780,133 @@ nimf_settings_page_key_build_string_array (NimfSettingsPageKey *page_key)
   return vbox;
 }
 
-static gchar *
-nimf_settings_page_build_title (NimfSettingsPage *page, const gchar *schema_id)
+static gboolean
+xprofile_contains_generator (GFile *file)
 {
-  GString *title;
-  gchar   *str;
-  gchar   *p;
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  str   = g_settings_get_string (page->gsettings, "hidden-schema-name");
-  title = g_string_new (str);
+  GFileInputStream *fis;
+  GDataInputStream *dis;
+  gboolean          found = FALSE;
 
-  for (p = (gchar *) schema_id; *p != 0; p++)
-    if (*p == '.')
-      g_string_prepend (title, "  ");
+  if (!(fis = g_file_read (file, NULL, NULL)))
+    return FALSE;
 
-  g_string_append (title, "  ");
+  dis  = g_data_input_stream_new (G_INPUT_STREAM (fis));
 
-  g_free (str);
+  do {
+    char *line;
 
-  return g_string_free (title, FALSE);
+    line = g_data_input_stream_read_line (dis, NULL, NULL, NULL);
+
+    if (!line)
+      break;
+
+    g_strstrip (line);
+    found = !g_strcmp0 (line, EXPORT_ENVIRONMENT);
+
+    g_free (line);
+  } while (found == FALSE);
+
+  g_input_stream_close (G_INPUT_STREAM (dis), NULL, NULL);
+  g_input_stream_close (G_INPUT_STREAM (fis), NULL, NULL);
+  g_object_unref (dis);
+  g_object_unref (fis);
+
+  return found;
+}
+
+static void
+on_setup_environment (GSettings  *settings,
+                      gchar      *key,
+                      gpointer    user_data)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  if (g_settings_get_boolean (settings, key))
+  {
+    GFile   *file;
+    gchar   *filename;
+    gchar   *xprofile;
+    gboolean success = TRUE;
+
+    filename = g_build_filename (G_DIR_SEPARATOR_S, g_get_user_config_dir (),
+                                 "environment.d", INPUT_CONF, NULL);
+    if (g_access (filename, F_OK))
+    {
+      gchar *path;
+
+      path = g_build_filename (G_DIR_SEPARATOR_S, g_get_user_config_dir (),
+                               "environment.d", NULL);
+      g_unlink (filename);
+      success = !g_mkdir_with_parents (path, 0700) &&
+                !symlink ("/etc/input.d/nimf.conf", filename);
+
+      g_free (path);
+    }
+
+    g_free (filename);
+
+    if (!success)
+    {
+      g_settings_set_boolean (settings, key, FALSE);
+      return;
+    }
+
+    xprofile = g_build_filename (G_DIR_SEPARATOR_S, g_get_home_dir (),
+                                 ".xprofile", NULL);
+    file  = g_file_new_for_path (xprofile);
+
+    if (xprofile_contains_generator (file) == FALSE)
+    {
+      GFileOutputStream *fos;
+      gboolean           success = FALSE;
+
+      fos = g_file_append_to (file, G_FILE_CREATE_NONE, NULL, NULL);
+
+      if (fos)
+      {
+        gsize count = strlen (EXPORT_ENVIRONMENT) + 1;
+
+        if (g_output_stream_write (G_OUTPUT_STREAM (fos),
+                                   EXPORT_ENVIRONMENT"\n", count,
+                                   NULL, NULL) == count)
+          success = TRUE;
+
+        g_output_stream_close (G_OUTPUT_STREAM (fos), NULL, NULL);
+        g_object_unref (fos);
+      }
+
+      if (success == FALSE)
+        g_settings_set_boolean (settings, key, FALSE);
+    }
+
+    g_object_unref (file);
+    g_free (xprofile);
+  }
+  else
+  {
+    gchar *filename;
+
+    filename = g_build_filename (G_DIR_SEPARATOR_S, g_get_user_config_dir (),
+                                 "environment.d", INPUT_CONF, NULL);
+    if (!g_access (filename, F_OK))
+      g_unlink (filename);
+
+    g_free (filename);
+  }
+}
+
+static void
+nimf_settings_page_free (NimfSettingsPage *page)
+{
+  g_object_unref (page->gsettings);
+  g_ptr_array_free (page->page_keys, TRUE);
+  g_slice_free (NimfSettingsPage, page);
 }
 
 static NimfSettingsPage *
-nimf_settings_page_new (NimfSettings *nsettings,
-                        const gchar  *schema_id)
+nimf_settings_page_new (const gchar  *schema_id)
 {
   NimfSettingsPage *page;
   GSettingsSchema  *schema;
@@ -902,9 +917,9 @@ nimf_settings_page_new (NimfSettings *nsettings,
 
   page = g_slice_new0 (NimfSettingsPage);
   page->gsettings = g_settings_new (schema_id);
-  page->title = nimf_settings_page_build_title (page, schema_id);
   page->box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 15);
   page->page_keys = g_ptr_array_new_with_free_func ((GDestroyNotify) nimf_settings_page_key_free);
+  g_object_set_data_full (G_OBJECT (page->box), "free", page, (GDestroyNotify) nimf_settings_page_free);
 
 #if GTK_CHECK_VERSION (3, 12, 0)
   gtk_widget_set_margin_start  (page->box, 15);
@@ -917,7 +932,7 @@ nimf_settings_page_new (NimfSettings *nsettings,
   gtk_widget_set_margin_top    (page->box, 15);
   gtk_widget_set_margin_bottom (page->box, 15);
 
-  schema = g_settings_schema_source_lookup (nsettings->schema_source,
+  schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default (),
                                             schema_id, TRUE);
 #if GLIB_CHECK_VERSION (2, 46, 0)
   keys = g_settings_schema_list_keys (schema);
@@ -977,6 +992,28 @@ nimf_settings_page_new (NimfSettings *nsettings,
     g_settings_schema_key_unref (schema_key);
   }
 
+  if (!g_strcmp0 (schema_id, "org.nimf"))
+  {
+    GFile *file;
+    gchar *xprofile;
+    gchar *conf;
+
+    xprofile = g_build_filename (G_DIR_SEPARATOR_S, g_get_home_dir (),
+                                 ".xprofile", NULL);
+    file = g_file_new_for_path (xprofile);
+    conf = g_build_filename (G_DIR_SEPARATOR_S, g_get_user_config_dir (),
+                             "environment.d", INPUT_CONF, NULL);
+    g_settings_set_boolean (page->gsettings, "setup-environment-variables",
+                            !g_access (conf, F_OK) &&
+                            xprofile_contains_generator (file));
+    g_signal_connect (page->gsettings, "changed::setup-environment-variables",
+                      G_CALLBACK (on_setup_environment), NULL);
+
+    g_object_unref (file);
+    g_free (xprofile);
+    g_free (conf);
+  }
+
   g_strfreev (keys);
   g_list_free (key_list);
   g_settings_schema_unref (schema);
@@ -984,7 +1021,8 @@ nimf_settings_page_new (NimfSettings *nsettings,
   return page;
 }
 
-void on_destroy (GtkWidget *widget, GApplication *app)
+static void
+on_destroy (GtkWidget *widget, GApplication *app)
 {
   g_application_release (app);
 }
@@ -1022,7 +1060,7 @@ on_toggled (GtkToggleButton *toggle_button,
 
   g_slist_foreach (xkb->toggle_buttons, (GFunc) build_xkb_options, xkb);
 
-  if (gnome_is_running ())
+  if (gnome_xkb_is_available () && gnome_is_running ())
   {
     GSettings *settings;
 
@@ -1119,104 +1157,213 @@ build_option_group (XklConfigRegistry   *config,
 }
 
 static void
-nimf_settings_build_xkb_options_ui (NimfSettings *nsettings,
-                                    GtkWidget    *stack)
+nimf_xkb_free (NimfXkb *xkb)
 {
+  g_strfreev (xkb->options);
+/*
+  if (xkb->engine)
+    g_object_unref  (xkb->engine);
+*/
+  g_slist_free (xkb->toggle_buttons);
+  g_slist_free (xkb->radio_group);
+  g_slice_free (NimfXkb, xkb);
+}
+
+static GtkWidget *
+nimf_settings_build_xkb_options_ui ()
+{
+  NimfXkb           *xkb;
   XklConfigRegistry *config_registry;
   GSettings         *settings;
-  GtkWidget         *scrolled_w;
 
-  if (gnome_is_running ())
+  if (gnome_xkb_is_available () && gnome_is_running ())
     settings = g_settings_new ("org.gnome.desktop.input-sources");
   else if (g_strcmp0 (g_getenv ("XDG_SESSION_TYPE"), "x11") == 0)
     settings = g_settings_new ("org.nimf.settings");
   else
-    return;
+    return NULL;
 
-  nsettings->xkb->options = g_settings_get_strv (settings, "xkb-options");
-  nsettings->xkb->options_len = g_strv_length (nsettings->xkb->options);
-  nsettings->xkb->options_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-  gtk_widget_set_margin_start  (nsettings->xkb->options_box, 15);
-  gtk_widget_set_margin_end    (nsettings->xkb->options_box, 15);
-  gtk_widget_set_margin_top    (nsettings->xkb->options_box, 15);
-  gtk_widget_set_margin_bottom (nsettings->xkb->options_box, 15);
+  xkb = g_slice_new0 (NimfXkb);
+  xkb->options = g_settings_get_strv (settings, "xkb-options");
+  xkb->options_len = g_strv_length (xkb->options);
+  xkb->options_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+  g_object_set_data_full (G_OBJECT (xkb->options_box), "xkb", xkb,
+                          (GDestroyNotify) nimf_xkb_free);
+  gtk_widget_set_margin_start  (xkb->options_box, 15);
+  gtk_widget_set_margin_end    (xkb->options_box, 15);
+  gtk_widget_set_margin_top    (xkb->options_box, 15);
+  gtk_widget_set_margin_bottom (xkb->options_box, 15);
 
-  nsettings->xkb->engine = xkl_engine_get_instance (GDK_DISPLAY_XDISPLAY
-                                                    (gdk_display_get_default ()));
-  config_registry = xkl_config_registry_get_instance (nsettings->xkb->engine);
+  xkb->engine =
+    xkl_engine_get_instance (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()));
+  config_registry = xkl_config_registry_get_instance (xkb->engine);
   xkl_config_registry_load (config_registry, TRUE);
   xkl_config_registry_foreach_option_group (config_registry,
                                             (ConfigItemProcessFunc) build_option_group,
-                                            nsettings->xkb);
-
+                                            xkb);
   g_object_unref (settings);
   g_object_unref (config_registry);
 
-  scrolled_w = gtk_scrolled_window_new (NULL, NULL);
-  gtk_container_add (GTK_CONTAINER (scrolled_w), nsettings->xkb->options_box);
-  gtk_stack_add_titled (GTK_STACK (stack), scrolled_w, "xkb-options", _("    XKB Options"));
+  return xkb->options_box;
+}
+
+static void
+on_row_selected (GtkListBox    *box,
+                 GtkListBoxRow *row,
+                 gpointer       user_data)
+{
+  NimfSettingsPage *page;
+  const gchar      *schema_id;
+  GtkWidget        *content = user_data;
+  GtkWidget        *child;
+
+  if ((child = gtk_bin_get_child (GTK_BIN (content))))
+    gtk_container_remove (GTK_CONTAINER (content), child);
+
+  schema_id = gtk_widget_get_name (GTK_WIDGET (row));
+
+  if (g_strcmp0 (schema_id, "xkb-options"))
+  {
+    page = nimf_settings_page_new (schema_id);
+    gtk_container_add (GTK_CONTAINER (content), page->box);
+  }
+  else
+  {
+    gtk_container_add (GTK_CONTAINER (content),
+                       nimf_settings_build_xkb_options_ui ());
+  }
+
+  gtk_widget_show_all (content);
+}
+
+static void
+append_xkb_menu_after_nimf_menu (GtkWidget *listbox)
+{
+  GtkWidget *label;
+  GtkWidget *row;
+  label = gtk_label_new (_("XKB Options"));
+  row   = gtk_list_box_row_new ();
+  gtk_widget_set_name (row, "xkb-options");
+  gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (row), FALSE);
+  gtk_container_add (GTK_CONTAINER (row), label);
+  gtk_widget_set_halign (label, GTK_ALIGN_START);
+  gtk_widget_set_margin_start  (label, 15);
+  gtk_widget_set_margin_end    (label, 15);
+  gtk_widget_set_margin_top    (label, 5);
+  gtk_widget_set_margin_bottom (label, 5);
+  gtk_list_box_insert (GTK_LIST_BOX (listbox), row, 1);
 }
 
 static GtkWidget *
 nimf_settings_build_main_window (NimfSettings *nsettings)
 {
+  GSettingsSchemaSource *source;
   GtkWidget  *window;
-  GtkWidget  *stack;
   GtkWidget  *sidebar;
+  GtkWidget  *content;
+  GtkWidget  *listbox;
   GtkWidget  *box;
-  GList      *schema_list = NULL;
-  gchar     **non_relocatable;
+  GSList     *schema_list = NULL;
+  gchar     **schemas;
   gint        i;
 
+  source = g_settings_schema_source_get_default ();
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
   gtk_window_set_title        (GTK_WINDOW (window), _("Nimf Settings"));
   gtk_window_set_icon_name    (GTK_WINDOW (window), "nimf-logo");
 
-  stack   = gtk_stack_new ();
-  sidebar = gtk_stack_sidebar_new ();
-  gtk_stack_sidebar_set_stack (GTK_STACK_SIDEBAR (sidebar), GTK_STACK (stack));
+  listbox = gtk_list_box_new ();
+  gtk_list_box_set_selection_mode (GTK_LIST_BOX (listbox), GTK_SELECTION_BROWSE);
+  g_settings_schema_source_list_schemas (source, TRUE, &schemas, NULL);
 
-  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start (GTK_BOX (box), sidebar, FALSE, FALSE, 0);
-  gtk_box_pack_start (GTK_BOX (box), stack,   TRUE,  TRUE,  0);
+  for (i = 0; schemas[i] != NULL; i++)
+    if (g_str_has_prefix (schemas[i], "org.nimf") &&
+        g_strcmp0 (schemas[i], "org.nimf.settings"))
+      schema_list = g_slist_prepend (schema_list, schemas[i]);
 
-  g_settings_schema_source_list_schemas (nsettings->schema_source, TRUE,
-                                         &non_relocatable, NULL);
-
-  for (i = 0; non_relocatable[i] != NULL; i++)
-    if (g_str_has_prefix (non_relocatable[i], "org.nimf") &&
-        g_strcmp0 (non_relocatable[i], "org.nimf.settings"))
-      schema_list = g_list_prepend (schema_list, non_relocatable[i]);
-
-  for (schema_list = g_list_sort (schema_list, (GCompareFunc) on_comparison);
+  for (schema_list = g_slist_sort (schema_list, (GCompareFunc) on_comparison);
        schema_list != NULL;
        schema_list = schema_list->next)
   {
-    NimfSettingsPage *page;
-    GtkWidget        *scrolled_w;
-    static gboolean   done = FALSE;
+    GSettingsSchemaKey *key;
+    GSettingsSchema    *schema;
+    GVariant           *variant;
+    GtkWidget          *row;
+    GtkWidget          *label;
+    gchar              *title;
+    gchar              *p;
+    gint                level = 0;
+    gchar              *schema_id = schema_list->data;
 
-    /* The `done 'variable is used to reduce calls to g_strcmp0. */
-    if (!done && !g_strcmp0 (schema_list->data, "org.nimf.engines"))
+    schema = g_settings_schema_source_lookup (source, schema_id, FALSE);
+
+    if (schema == NULL)
     {
-      nimf_settings_build_xkb_options_ui (nsettings, stack);
-      done = TRUE;
+      g_warning (G_STRLOC ": %s: %s is not found.", G_STRFUNC, schema_id);
+      continue;
     }
 
-    scrolled_w = gtk_scrolled_window_new (NULL, NULL);
-    page = nimf_settings_page_new (nsettings,
-                                   (const gchar *) schema_list->data);
-    gtk_container_add (GTK_CONTAINER (scrolled_w), page->box);
-    gtk_stack_add_titled (GTK_STACK (stack), scrolled_w,
-                          (const gchar *) schema_list->data, page->title);
-    g_ptr_array_add (nsettings->pages, page);
+    key = g_settings_schema_get_key (schema, "hidden-schema-name");
+    variant = g_settings_schema_key_get_default_value (key);
+    title = g_strdup (g_variant_get_string (variant, NULL));
+
+    for (p = schema_id; *p != 0; p++)
+      if (*p == '.')
+        level++;
+
+    if (level < 3)
+    {
+      gchar *markup;
+
+      label  = gtk_label_new (NULL);
+      markup = g_strdup_printf ("<span weight=\"bold\""
+                                "size=\"large\">\%s</span>", title);
+      gtk_label_set_markup (GTK_LABEL (label), markup);
+
+      g_free (markup);
+    }
+    else
+    {
+      label = gtk_label_new (title);
+    }
+
+    row = gtk_list_box_row_new ();
+    gtk_widget_set_name (row, schema_id);
+    gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (row), FALSE);
+    gtk_container_add (GTK_CONTAINER (row), label);
+    gtk_widget_set_halign (label, GTK_ALIGN_START);
+    gtk_widget_set_margin_start  (label, 15);
+    gtk_widget_set_margin_end    (label, 15);
+    gtk_widget_set_margin_top    (label, 5);
+    gtk_widget_set_margin_bottom (label, 5);
+    gtk_list_box_insert (GTK_LIST_BOX (listbox), row, -1);
+
+    g_free (title);
+    g_variant_unref (variant);
+    g_settings_schema_key_unref (key);
+    g_settings_schema_unref (schema);
   }
 
+  if ((gnome_xkb_is_available () && gnome_is_running ()) ||
+      !g_strcmp0 (g_getenv ("XDG_SESSION_TYPE"), "x11"))
+    append_xkb_menu_after_nimf_menu (listbox);
+
+  sidebar = gtk_scrolled_window_new (NULL, NULL);
+  content = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sidebar),
+                                  GTK_POLICY_NEVER,
+                                  GTK_POLICY_AUTOMATIC);
+  gtk_container_add (GTK_CONTAINER (sidebar), listbox);
+  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_box_pack_start (GTK_BOX (box), sidebar, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (box), content, TRUE,  TRUE, 0);
   gtk_container_add (GTK_CONTAINER (window), box);
 
-  g_strfreev  (non_relocatable);
-  g_list_free (schema_list);
+  g_signal_connect (listbox, "row-selected", G_CALLBACK (on_row_selected), content);
+
+  g_strfreev   (schemas);
+  g_slist_free (schema_list);
 
   g_signal_connect (window, "destroy",
                     G_CALLBACK (on_destroy), nsettings->app);
@@ -1242,7 +1389,7 @@ on_activate (GApplication *app, NimfSettings *nsettings)
   gtk_widget_show_all (nimf_settings_window);
 }
 
-int
+static int
 nimf_settings_run (NimfSettings  *nsettings,
                    int            argc,
                    char         **argv)
@@ -1250,28 +1397,17 @@ nimf_settings_run (NimfSettings  *nsettings,
   return g_application_run (G_APPLICATION (nsettings->app), argc, argv);
 }
 
-NimfSettings *
+static NimfSettings *
 nimf_settings_new ()
 {
   return g_object_new (NIMF_TYPE_SETTINGS, NULL);
 }
 
-static void nimf_settings_page_free (NimfSettingsPage *page)
-{
-  g_object_unref (page->gsettings);
-  g_free (page->title);
-  g_slice_free (NimfSettingsPage, page);
-}
-
 static void
 nimf_settings_init (NimfSettings *nsettings)
 {
-  nsettings->schema_source = g_settings_schema_source_get_default ();
-  nsettings->pages = g_ptr_array_new_with_free_func ((GDestroyNotify) nimf_settings_page_free);
   nsettings->app = g_application_new ("org.nimf.settings",
                                       G_APPLICATION_FLAGS_NONE);
-  nsettings->xkb = g_slice_new0 (NimfXkb);
-
   g_signal_connect (nsettings->app, "activate",
                     G_CALLBACK (on_activate), nsettings);
 }
@@ -1279,18 +1415,7 @@ nimf_settings_init (NimfSettings *nsettings)
 static void
 nimf_settings_finalize (GObject *object)
 {
-  NimfSettings *nsettings = NIMF_SETTINGS (object);
-
-  g_ptr_array_unref (nsettings->pages);
-  g_object_unref    (nsettings->app);
-  g_strfreev        (nsettings->xkb->options);
-
-  if (nsettings->xkb->engine)
-    g_object_unref  (nsettings->xkb->engine);
-
-  g_slist_free      (nsettings->xkb->toggle_buttons);
-  g_slist_free      (nsettings->xkb->radio_group);
-  g_slice_free      (NimfXkb, nsettings->xkb);
+  g_object_unref (NIMF_SETTINGS (object)->app);
 
   G_OBJECT_CLASS (nimf_settings_parent_class)->finalize (object);
 }

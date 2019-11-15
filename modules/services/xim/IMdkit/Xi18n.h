@@ -1,10 +1,11 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*- */
 /******************************************************************
- 
+
          Copyright (C) 1994-1995 Sun Microsystems, Inc.
          Copyright (C) 1993-1994 Hewlett-Packard Company
          Copyright (C) 2014 Peng Huang <shawn.p.huang@gmail.com>
          Copyright (C) 2014 Red Hat, Inc.
- 
+
 Permission to use, copy, modify, distribute, and sell this software
 and its documentation for any purpose is hereby granted without fee,
 provided that the above copyright notice appear in all copies and
@@ -15,7 +16,7 @@ distribution of the software without specific, written prior permission.
 Sun Microsystems, Inc. and Hewlett-Packard make no representations about
 the suitability of this software for any purpose.  It is provided "as is"
 without express or implied warranty.
- 
+
 SUN MICROSYSTEMS INC. AND HEWLETT-PACKARD COMPANY DISCLAIMS ALL
 WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -24,11 +25,11 @@ SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
 RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
 CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
 IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- 
+
   Author: Hidetoshi Tajima(tajima@Eng.Sun.COM) Sun Microsystems, Inc.
 
     This version tidied and debugged by Steve Underwood May 1999
- 
+
 ******************************************************************/
 
 #ifndef _Xi18n_h
@@ -39,7 +40,7 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "XimProto.h"
 
 /*
- * Minor Protocol Number for Extension Protocol 
+ * Minor Protocol Number for Extension Protocol
  */
 #define XIM_EXTENSION				128
 #define XIM_EXT_SET_EVENT_MASK			(0x30)
@@ -49,7 +50,6 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include <stddef.h>
 #include <stdlib.h>
-#include "IMdkit.h"
 
 /* XI18N Valid Attribute Name Definition */
 #define ExtForwardKeyEvent	"extForwardKeyEvent"
@@ -67,16 +67,7 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define LOCALES		"LOCALES"
 #define TRANSPORT	"TRANSPORT"
 
-#define I18N_OPEN	0
-#define I18N_SET	1
-#define I18N_GET	2
-
-typedef struct
-{
-    char        *transportname;
-    int         namelen;
-    Bool        (*checkAddr) ();
-} TransportSW;
+typedef struct _NimfXim NimfXim;
 
 typedef struct _XIMPending
 {
@@ -110,7 +101,7 @@ typedef struct
 typedef struct
 {
     int		attribute_id;
-    CARD16	name_length; 
+    CARD16	name_length;
     char	*name;
     int		value_length;
     void	*value;
@@ -169,8 +160,6 @@ typedef struct _Xi18nClient
     void *trans_rec;		/* contains transport specific data  */
     struct _Xi18nClient *next;
 } Xi18nClient;
-
-typedef struct _Xi18nCore *Xi18n;
 
 /*
  * Callback Struct for XIM Protocol
@@ -456,28 +445,11 @@ typedef union _IMProtocol
     long pad[32];
 } IMProtocol;
 
-typedef int (*IMProtoHandler) (XIMS, IMProtocol*, void*);
-
-#define DEFAULT_FILTER_MASK	(KeyPressMask)
+typedef int (*IMProtoHandler) (NimfXim *, IMProtocol*, void*);
 
 /* Xi18nAddressRec structure */
 typedef struct _Xi18nAddressRec
 {
-    Display	*dpy;
-    CARD8	im_byteOrder;	/* byte order 'B' or 'l' */
-    /* IM Values */
-    long	imvalue_mask;
-    Window	im_window;	/* IMServerWindow */
-    char	*im_name;	/* IMServerName */
-    char	*im_locale;	/* IMLocale */
-    char	*im_addr;	/* IMServerTransport */
-    XIMStyles	input_styles;	/* IMInputStyles */
-    XIMTriggerKeys on_keys;	/* IMOnKeysList */
-    XIMTriggerKeys off_keys;	/* IMOffKeysList */
-    XIMEncodings encoding_list; /* IMEncodingList */
-    IMProtoHandler improto;	/* IMProtocolHandler */
-    void	*user_data;	/* IMUserData */
-    long	filterevent_mask; /* IMFilterEventMask */
     /* XIM_SERVERS target Atoms */
     Atom	selection;
     Atom	Localename;
@@ -493,31 +465,10 @@ typedef struct _Xi18nAddressRec
     /* XIMExtension List */
     int		ext_num;
     XIMExt	extension[COMMON_EXTENSIONS_NUM];
-    /* transport specific connection address */
-    void	*connect_addr;
-    /* actual data is defined:
-       XSpecRec in Xi18nX.h for X-based connection.
-       TransSpecRec in Xi18nTr.h for Socket-based connection.
-     */
     /* clients table */
     Xi18nClient *clients;
     Xi18nClient *free_clients;
 } Xi18nAddressRec;
-
-typedef struct _Xi18nMethodsRec
-{
-    Bool (*begin) (XIMS);
-    Bool (*end) (XIMS);
-    Bool (*send) (XIMS, CARD16, unsigned char*, long);
-    Bool (*wait) (XIMS, CARD16, CARD8, CARD8);
-    Bool (*disconnect) (XIMS, CARD16);
-} Xi18nMethodsRec;
-
-typedef struct _Xi18nCore
-{
-    Xi18nAddressRec address;
-    Xi18nMethodsRec methods;
-} Xi18nCore;
 
 #endif
 

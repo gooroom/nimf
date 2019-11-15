@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(nimf, 2019.06.23)
+AC_INIT(nimf, 2019.08.14)
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -70,7 +70,15 @@ dnl ***************************************************************************
 dnl nimf-m17n
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_M17N_DEPS, [m17n-shell m17n-db  $LIBNIMF_REQUIRES])
+AC_ARG_ENABLE([nimf-m17n],
+  AS_HELP_STRING([--disable-nimf-m17n], [Disable nimf-m17n]))
+
+AS_IF([test "x$enable_nimf_m17n" != "xno"],
+      [PKG_CHECK_MODULES(NIMF_M17N_DEPS, [m17n-shell >= 1.7.0 m17n-db >= 1.7.0
+                                          $LIBNIMF_REQUIRES])])
+
+AM_CONDITIONAL([ENABLE_NIMF_M17N], [test "x$enable_nimf_m17n" != "xno"])
+
 PKG_CHECK_EXISTS([m17n-db >= 1.8.0], [m17n_1_8_0_available="yes"])
 AM_CONDITIONAL([M17N_1_8_0_AVAILABLE], [test "x$m17n_1_8_0_available" = "xyes"])
 
@@ -251,7 +259,8 @@ dnl nimf-settings
 dnl ***************************************************************************
 
 PKG_CHECK_MODULES(NIMF_SETTINGS_DEPS,
-                  [gtk+-3.0 gio-2.0 gmodule-2.0 libxklavier gdk-3.0 gdk-x11-3.0])
+                  [gtk+-3.0 glib-2.0 >= 2.54 gio-2.0 gmodule-2.0 libxklavier
+                   gdk-3.0 gdk-x11-3.0])
 
 dnl ***************************************************************************
 dnl im-config data
@@ -279,7 +288,7 @@ dnl ***************************************************************************
 dnl Check for gtk-doc
 dnl ***************************************************************************
 
-GTK_DOC_CHECK([1.14],[--flavour no-tmpl])
+GTK_DOC_CHECK([1.26],[--flavour no-tmpl])
 
 dnl ***************************************************************************
 
