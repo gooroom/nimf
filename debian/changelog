@@ -1,8 +1,8 @@
-nimf (2019.08.14-1) unstable; urgency=medium
+nimf (2019.08.14-1+grm2u1) unstable; urgency=medium
 
   * Released Gooroom-2.0
 
- -- gooroom <gooroom@gooroom.kr>  Fri, 15 Nov 2019 18:12:05 +0900
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Mon, 02 Dec 2019 11:26:57 +0900
 
 nimf (2019.08.14) stable; urgency=medium
 
