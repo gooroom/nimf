@@ -736,6 +736,7 @@ nimf_libhangul_init (NimfLibhangul *hangul)
   hanja_keys = g_settings_get_strv (hangul->settings, "hanja-keys");
   hangul->hanja_keys = nimf_key_newv ((const gchar **) hanja_keys);
   hangul->context = hangul_ic_new (hangul->method);
+  hangul_ic_set_option (hangul->context, HANGUL_IC_OPTION_COMBI_ON_DOUBLE_STROKE, TRUE);
 
   hangul->id = g_strdup ("nimf-libhangul");
   hangul->preedit_string = g_strdup ("");
