@@ -384,11 +384,11 @@ msgstr "한자키에 대한 바인딩"
 
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:11
 msgid "Use a rule composing double consonants"
-msgstr "겹자음 조합 규칙을 사용합니다"
+msgstr "쌍자음 조합 규칙을 사용합니다"
 
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:12
 msgid "Compose a double consonant on pressing same consonant twice"
-msgstr "같은 자음을 두 번 누를 때 겹자음을 조합합니다"
+msgstr "같은 자음을 두 번 누를 때 쌍자음을 조합합니다"
 
 #: ../modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml.h:13
 msgid "Auto-reordering in Dubeolsik"
