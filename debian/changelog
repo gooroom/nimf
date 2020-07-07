@@ -1,3 +1,13 @@
+nimf (2020.07.07+grm2u1) unstable; urgency=medium
+
+  [ cjheo ]
+  * [01e81010] [Bug: 2382,1484,1323] 겹자음 기능 동작이슈 수정
+  * [8b74850b] 한국어 번역파일 업데이트(겹자음->쌍자음)
+
+  [ Gooroom Autobuilder ]
+
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Tue, 07 Jul 2020 16:13:45 +0900
+
 nimf (2020.06.16) unstable; urgency=medium
 
   * Changed format native
