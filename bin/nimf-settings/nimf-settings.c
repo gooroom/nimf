@@ -1339,6 +1339,12 @@ nimf_settings_build_main_window (NimfSettings *nsettings)
     gtk_widget_set_margin_bottom (label, 5);
     gtk_list_box_insert (GTK_LIST_BOX (listbox), row, -1);
 
+    if (!g_strcmp0 (schema_id, "org.nimf.clients") ||
+        !g_strcmp0 (schema_id, "org.nimf.services"))
+    {
+      gtk_list_box_row_set_selectable (GTK_LIST_BOX_ROW (row), FALSE);
+    }
+
     g_free (title);
     g_variant_unref (variant);
     g_settings_schema_key_unref (key);
