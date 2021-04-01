@@ -1,3 +1,12 @@
+nimf (2021.04.01+grm2u1) unstable; urgency=medium
+
+  [ Haru ]
+  * [6b8d8e29] [Bug:2977,2978] Row Selectable Issue Fixed.
+
+  [ Gooroom Autobuilder ]
+
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Thu, 01 Apr 2021 12:46:52 +0900
+
 nimf (2020.07.07+grm2u1) unstable; urgency=medium
 
   [ cjheo ]
