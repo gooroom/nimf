@@ -1,3 +1,10 @@
+nimf (2021.05.06+grm2u1) unstable; urgency=medium
+
+  [ boyeon.choi ]
+  * [06120c3a] Enable the help program
+
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Thu, 06 May 2021 20:38:43 +0900
+
 nimf (2021.04.01+grm2u1) unstable; urgency=medium
 
   [ Haru ]
