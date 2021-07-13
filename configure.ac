@@ -21,7 +21,7 @@ AS_IF([test "$CXX" = "g++"],
 AC_ARG_ENABLE([hardening],
   AS_HELP_STRING([--disable-hardening], [Disable hardening]))
 
-EXTRA_CFLAGS="-Wall -Werror"
+EXTRA_CFLAGS="-Wall -Werror -Wno-deprecated-declarations"
 AS_IF([test "x$enable_hardening" != "xno"],
       [EXTRA_CFLAGS+=" -D_FORTIFY_SOURCE=2"])
 
@@ -113,12 +113,8 @@ AS_IF([test "x$enable_nimf_anthy" != "xno" -a "x$HAVE_ANTHY_DIC" != "xyes"],
 AM_CONDITIONAL([ENABLE_NIMF_ANTHY], [test "x$enable_nimf_anthy" != "xno"])
 
 dnl ***************************************************************************
-dnl im-nimf-qt4  im-nimf-qt5
+dnl im-nimf-qt5
 dnl ***************************************************************************
-
-PKG_CHECK_MODULES(IM_NIMF_QT4_DEPS, [QtGui], [],
-  [AC_MSG_ERROR([No package 'QtGui' found.
-  If you are using Debian, please install 'libqt4-dev'.])])
 
 PKG_CHECK_MODULES(IM_NIMF_QT5_DEPS, [Qt5Core Qt5Gui Qt5Widgets], [],
   [AC_MSG_ERROR([Package requirements (Qt5Core Qt5Gui Qt5Widgets) were not met:
@@ -244,7 +240,7 @@ dnl nimf-indicator
 dnl ***************************************************************************
 
 PKG_CHECK_MODULES(NIMF_INDICATOR_DEPS,
-                  [glib-2.0 x11 gtk+-3.0 appindicator3-0.1 libxklavier gdk-3.0
+                  [glib-2.0 x11 gtk+-3.0 ayatana-appindicator3-0.1 libxklavier gdk-3.0
                    gdk-x11-3.0 gmodule-2.0])
 
 dnl ***************************************************************************
@@ -310,7 +306,6 @@ AC_OUTPUT([
   modules/Makefile
   modules/clients/Makefile
   modules/clients/gtk/Makefile
-  modules/clients/qt4/Makefile
   modules/clients/qt5/Makefile
   modules/engines/Makefile
   modules/engines/nimf-anthy/Makefile
