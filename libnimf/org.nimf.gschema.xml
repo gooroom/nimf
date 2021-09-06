@@ -38,13 +38,13 @@ But the effect will appear after you login again.
      </description>
     </key>
   </schema>
-  <schema id="org.nimf.services" path="/org/nimf/services/" gettext-domain="nimf">
+  <!--schema id="org.nimf.services" path="/org/nimf/services/" gettext-domain="nimf">
     <key type="s" name="hidden-schema-name">
       <default l10n="messages">'Services'</default>
       <summary>schema name for nimf-settings</summary>
       <description>This key is intended for nimf-settings.</description>
     </key>
-  </schema>
+  </schema-->
   <schema id="org.nimf.clients" path="/org/nimf/clients/" gettext-domain="nimf">
     <key type="s" name="hidden-schema-name">
       <default l10n="messages">'Clients'</default>
