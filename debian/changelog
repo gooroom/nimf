@@ -1,3 +1,10 @@
+nimf (2021.12.04+grm3u1) unstable; urgency=medium
+
+  [ cjheo ]
+  * [2d2da0fb] Rebase for Gooroom-3.0
+
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Sat, 04 Dec 2021 22:13:23 +0900
+
 nimf (2020.07.07+grm2u1) unstable; urgency=medium
 
   [ cjheo ]
