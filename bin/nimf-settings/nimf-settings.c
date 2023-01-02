@@ -1304,6 +1304,12 @@ nimf_settings_build_main_window (NimfSettings *nsettings)
       continue;
     }
 
+    if (g_str_has_prefix (schema_id, "org.nimf.clients") || g_str_has_prefix (schema_id, "org.nimf.services"))
+    {
+      g_warning (G_STRLOC ": Do not create clients and services menu : %s.", schema_id);
+      continue;
+    }
+
     key = g_settings_schema_get_key (schema, "hidden-schema-name");
     variant = g_settings_schema_key_get_default_value (key);
     title = g_strdup (g_variant_get_string (variant, NULL));
@@ -1372,6 +1378,34 @@ nimf_settings_build_main_window (NimfSettings *nsettings)
 }
 
 static void
+nimf_settings_open_help (GtkAccelGroup *accel,
+                         GObject *acceleratoable,
+                         guint keyval,
+                         GdkModifierType modifier,
+                         gpointer user_data)
+{
+  gtk_show_uri_on_window (GTK_WINDOW(user_data), "help:gooroom-help-nimf-settings",
+                          gtk_get_current_event_time (),NULL);
+}
+
+static void
+nimf_settings_accel_init(NimfSettings *nsettings)
+{
+  GtkAccelGroup *accel_group;
+  guint accelerator_key;
+  GdkModifierType accelerator_mod;
+  GClosure *closure;
+  GtkWindow *window = GTK_WINDOW(nimf_settings_window);
+  
+  accel_group = gtk_accel_group_new();
+  gtk_accelerator_parse ( "F1", &accelerator_key, &accelerator_mod);
+  closure = g_cclosure_new_object (G_CALLBACK (nimf_settings_open_help),G_OBJECT(window));
+  gtk_accel_group_connect (accel_group, accelerator_key,accelerator_mod, GTK_ACCEL_VISIBLE, closure);
+  gtk_window_add_accel_group (window, accel_group);
+}
+
+
+static void
 on_activate (GApplication *app, NimfSettings *nsettings)
 {
   g_application_hold (app);
@@ -1385,7 +1419,7 @@ on_activate (GApplication *app, NimfSettings *nsettings)
   }
 
   nimf_settings_window = nimf_settings_build_main_window (nsettings);
-
+  nimf_settings_accel_init (nsettings);
   gtk_widget_show_all (nimf_settings_window);
 }
 
