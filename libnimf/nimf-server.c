@@ -816,6 +816,8 @@ nimf_server_start (NimfServer *server)
       g_hash_table_iter_remove (&iter);
   }
 
+  on_changed_hotkeys (server->priv->settings, "hotkeys", server);
+
   g_signal_connect (server->priv->settings, "changed::hotkeys",
                     G_CALLBACK (on_changed_hotkeys), server);
   g_signal_connect (server->priv->settings, "changed::use-singleton",
