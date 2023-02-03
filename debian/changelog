@@ -1,3 +1,14 @@
+nimf (2023.02.03+grm3u1) unstable; urgency=medium
+
+  [ cjheo ]
+  * [2d2da0fb] Rebase for Gooroom-3.0
+
+  [ heejun.jang ]
+  * [b41d03e7] Add hangul hotkeys for notebook
+  * [a7b121d8] Delete client and service menu in nimf settings
+
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Fri, 03 Feb 2023 16:30:57 +0900
+
 nimf (2020.07.07+grm2u1) unstable; urgency=medium
 
   [ cjheo ]
