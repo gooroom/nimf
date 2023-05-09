@@ -326,7 +326,7 @@ nimf_settings_page_key_new (GSettings   *gsettings,
   page_key->key       = g_strdup (key);
   page_key->label     = gtk_label_new (summary);
   gtk_widget_set_halign (page_key->label, GTK_ALIGN_START);
-  gtk_widget_set_tooltip_text (page_key->label, desc);
+  //gtk_widget_set_tooltip_text (page_key->label, desc);
 
   return page_key;
 }
