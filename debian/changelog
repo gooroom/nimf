@@ -1,3 +1,10 @@
+nimf (2023.06.30+grm3u1) unstable; urgency=medium
+
+  [ boyeon.choi ]
+  * [8f6b5237] Run nimf automatically when the desktop starts
+
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Fri, 30 Jun 2023 19:42:09 +0900
+
 nimf (2023.05.21+grm3u1) unstable; urgency=medium
 
   [ boyeon.choi ]
