@@ -58,6 +58,7 @@ struct _NimfRimeClass
 };
 
 static gint nimf_rime_ref_count = 0;
+static RimeApi *rime_api = NULL;
 
 G_DEFINE_DYNAMIC_TYPE (NimfRime, nimf_rime, NIMF_TYPE_ENGINE);
 
@@ -102,7 +103,7 @@ void nimf_rime_reset (NimfEngine    *engine,
 
   nimf_candidatable_hide (rime->candidatable);
   nimf_rime_update_preedit (engine, target, "", 0);
-  RimeProcessKey (rime->session_id, NIMF_KEY_Escape, 0);
+  rime_api->process_key (rime->session_id, NIMF_KEY_Escape, 0);
 }
 
 void
@@ -133,11 +134,11 @@ nimf_rime_update_candidate (NimfEngine    *engine,
 
   RIME_STRUCT (RimeContext, context);
 
-  if (!RimeGetContext (rime->session_id, &context) ||
+  if (!rime_api->get_context (rime->session_id, &context) ||
       context.composition.length == 0)
   {
     nimf_candidatable_hide (rime->candidatable);
-    RimeFreeContext (&context);
+    rime_api->free_context (&context);
     return;
   }
 
@@ -160,7 +161,7 @@ nimf_rime_update_candidate (NimfEngine    *engine,
 
   nimf_candidatable_set_page_values (rime->candidatable, target,
                                      context.menu.page_no + 1, rime->n_pages, 5);
-  RimeFreeContext (&context);
+  rime_api->free_context (&context);
 }
 
 static void nimf_rime_update_preedit2 (NimfEngine    *engine,
@@ -172,12 +173,12 @@ static void nimf_rime_update_preedit2 (NimfEngine    *engine,
 
   RIME_STRUCT (RimeContext, context);
 
-  if (!RimeGetContext (rime->session_id, &context) ||
+  if (!rime_api->get_context (rime->session_id, &context) ||
       context.composition.length == 0)
   {
     nimf_rime_update_preedit (engine, target, "", 0);
     nimf_candidatable_hide (rime->candidatable);
-    RimeFreeContext (&context);
+    rime_api->free_context (&context);
     return;
   }
 
@@ -190,7 +191,7 @@ static void nimf_rime_update_preedit2 (NimfEngine    *engine,
   nimf_candidatable_set_auxiliary_text (rime->candidatable,
                                         context.composition.preedit,
                                         context.composition.cursor_pos);
-  RimeFreeContext (&context);
+  rime_api->free_context (&context);
 }
 
 static void nimf_rime_update (NimfEngine    *engine,
@@ -203,20 +204,20 @@ static void nimf_rime_update (NimfEngine    *engine,
   /* commit text */
   RIME_STRUCT (RimeCommit, commit);
 
-  if (RimeGetCommit (rime->session_id, &commit))
+  if (rime_api->get_commit (rime->session_id, &commit))
   {
     nimf_engine_emit_commit (engine, target, commit.text);
-    RimeFreeCommit (&commit);
+    rime_api->free_commit (&commit);
   }
 
   RIME_STRUCT (RimeContext, context);
 
-  if (!RimeGetContext (rime->session_id, &context) ||
+  if (!rime_api->get_context (rime->session_id, &context) ||
       context.composition.length == 0)
   {
     nimf_rime_update_preedit (engine, target, "", 0);
     nimf_candidatable_hide (rime->candidatable);
-    RimeFreeContext (&context);
+    rime_api->free_context (&context);
     return;
   }
 
@@ -234,7 +235,7 @@ static void nimf_rime_update (NimfEngine    *engine,
     nimf_candidatable_clear (rime->candidatable, target);
   }
 
-  RimeFreeContext (&context);
+  rime_api->free_context (&context);
 }
 
 static void
@@ -246,22 +247,21 @@ on_candidate_clicked (NimfEngine    *engine,
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   NimfRime *rime = NIMF_RIME (engine);
-  RimeApi  *api  = rime_get_api();
 
-  if (RIME_API_AVAILABLE (api, select_candidate))
+  if (RIME_API_AVAILABLE (rime_api, select_candidate))
   {
     RIME_STRUCT(RimeContext, context);
 
-    if (!RimeGetContext (rime->session_id, &context) ||
+    if (!rime_api->get_context (rime->session_id, &context) ||
         context.composition.length == 0)
     {
-      RimeFreeContext (&context);
+      rime_api->free_context (&context);
       return;
     }
 
-    api->select_candidate (rime->session_id,
+    rime_api->select_candidate (rime->session_id,
                            context.menu.page_no * context.menu.page_size + index);
-    RimeFreeContext (&context);
+    rime_api->free_context (&context);
     nimf_rime_update (engine, target);
   }
 }
@@ -271,7 +271,7 @@ nimf_rime_page_up (NimfEngine *engine, NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  RimeProcessKey (NIMF_RIME (engine)->session_id, NIMF_KEY_Page_Up, 0);
+  rime_api->process_key (NIMF_RIME (engine)->session_id, NIMF_KEY_Page_Up, 0);
   nimf_rime_update_candidate (engine, target);
 
   return TRUE;
@@ -282,7 +282,7 @@ nimf_rime_page_down (NimfEngine *engine, NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  RimeProcessKey (NIMF_RIME (engine)->session_id, NIMF_KEY_Page_Down, 0);
+  rime_api->process_key (NIMF_RIME (engine)->session_id, NIMF_KEY_Page_Down, 0);
   nimf_rime_update_candidate (engine, target);
 
   return TRUE;
@@ -329,7 +329,7 @@ nimf_rime_filter_event (NimfEngine    *engine,
   if (event->key.type == NIMF_EVENT_KEY_RELEASE)
     return FALSE;
 
-  retval = RimeProcessKey (rime->session_id, event->key.keyval,
+  retval = rime_api->process_key (rime->session_id, event->key.keyval,
                            event->key.state & NIMF_MODIFIER_MASK);
   nimf_rime_update (engine, target);
 
@@ -343,11 +343,11 @@ on_changed_simplification (GSettings *settings,
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  Bool is_simplified  = RimeGetOption (rime->session_id, "simplification");
+  Bool is_simplified  = rime_api->get_option (rime->session_id, "simplification");
   rime->is_simplified = g_settings_get_boolean (settings, key);
 
   if (!rime->is_simplified != !is_simplified)
-    RimeSetOption (rime->session_id, "simplification", rime->is_simplified);
+    rime_api->set_option (rime->session_id, "simplification", rime->is_simplified);
 
   nimf_engine_status_changed (NIMF_ENGINE (rime));
 }
@@ -399,38 +399,33 @@ nimf_rime_init (NimfRime *rime)
   if (nimf_rime_ref_count == 0)
   {
     gchar *user_data_dir;
-    static gboolean logging = FALSE;
 
-    if (logging == FALSE)
-    {
-      RimeSetupLogging ("nimf-rime");
-      logging = TRUE;
-    }
+    rime_api = rime_get_api();
 
     user_data_dir = g_strconcat (g_getenv ("HOME"), "/.config/nimf/rime", NULL);
 
     if (!g_file_test (user_data_dir, G_FILE_TEST_IS_DIR))
       g_mkdir_with_parents (user_data_dir, 0700);
 
-    RimeSetNotificationHandler (on_notification, rime);
+    rime_api->set_notification_handler (on_notification, rime);
     RIME_STRUCT (RimeTraits, traits);
     traits.shared_data_dir        = "/usr/share/rime-data";
     traits.user_data_dir          = user_data_dir;
     traits.distribution_name      = _("Rime");
     traits.distribution_code_name = "nimf-rime";
-    traits.distribution_version   = rime_get_api()->get_version();
+    traits.distribution_version   = rime_api->get_version();
     traits.app_name               = "nimf-rime";
 
-    RimeInitialize (&traits);
-    RimeStartMaintenance (False);
+    rime_api->initialize (&traits);
+    rime_api->start_maintenance (False);
 
     g_free (user_data_dir);
   }
 
   nimf_rime_ref_count++;
 
-  rime->session_id = RimeCreateSession();
-  RimeSetOption (rime->session_id, "simplification", rime->is_simplified);
+  rime->session_id = rime_api->create_session();
+  rime_api->set_option (rime->session_id, "simplification", rime->is_simplified);
 
   g_signal_connect (rime->settings, "changed::simplification",
                     G_CALLBACK (on_changed_simplification), rime);
@@ -449,12 +444,12 @@ nimf_rime_finalize (GObject *object)
 
   if (rime->session_id)
   {
-    RimeDestroySession (rime->session_id);
+    rime_api->destroy_session (rime->session_id);
     rime->session_id = 0;
   }
 
   if (--nimf_rime_ref_count == 0)
-    RimeFinalize ();
+    rime_api->finalize ();
 
   g_object_unref (rime->settings);
 
@@ -480,7 +475,7 @@ nimf_rime_get_icon_name (NimfEngine *engine)
 
   NimfRime *rime = NIMF_RIME (engine);
 
-  if (RimeGetOption (rime->session_id, "simplification"))
+  if (rime_api->get_option (rime->session_id, "simplification"))
     return "nimf-rime-simplified";
   else
     return "nimf-rime-traditional";

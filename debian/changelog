@@ -1,3 +1,14 @@
+nimf (2024.05.27+grm5~alpha1) gooroom-5.0-unstable; urgency=medium
+
+  * Rebase for Gooroom 5.0 (Debian Trixie)
+  * Update debhelper-compat to 13
+  * Update Standards-Version to 4.6.2
+  * Fix librime API compatibility for librime 1.16
+  * Fix use-after-free warning in i18nOffsetCache.c
+  * Install apparmor abstractions file
+
+ -- Gooroom Autobuilder <jenkins@gooroom.kr>  Mon, 20 Jan 2026 10:00:00 +0900
+
 nimf (2024.05.27+grm4u1) unstable; urgency=medium
 
   [ cjheo ]

@@ -1,3 +1,4 @@
+etc/apparmor.d/abstractions/nimf
 etc/input.d/nimf.conf
 etc/xdg/autostart
 usr/bin

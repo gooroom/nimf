@@ -1,10 +1,9 @@
 Source: nimf
 Section: utils
 Priority: optional
-Maintainer: gooroom <goorooom@goooroom.kr>
+Maintainer: Gooroom <gooroom@gooroom.kr>
 XSBC-Original-Maintainer: Hodong Kim <cogniti@gmail.com>
-Build-Depends: debhelper (>= 9),
-               dh-autoreconf,
+Build-Depends: debhelper-compat (= 13),
                libglib2.0-dev (>= 2.54),
                pkg-config,
                intltool (>= 0.50.1),
@@ -28,7 +27,7 @@ Build-Depends: debhelper (>= 9),
                libm17n-dev (>= 1.7.0),
                m17n-db (>= 1.7.0),
                gtk-doc-tools (>= 1.26)
-Standards-Version: 3.9.8
+Standards-Version: 4.6.2
 Homepage: http://www.gooroom.kr
 Vcs-Git: https://github.com/gooroom/nimf.git
 Vcs-Browser: https://github.com/gooroom/nimf

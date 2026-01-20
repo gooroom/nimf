@@ -79,14 +79,16 @@ void _Xi18nSetPropertyOffset (Xi18nOffsetCache *offset_cache, Atom key,
     }
 
     if (++offset_cache->size > offset_cache->capacity) {
+        Xi18nAtomOffsetPair *new_data;
         offset_cache->capacity *= OFFSET_CACHE_GROWTH_FACTOR;
-        offset_cache->data = (Xi18nAtomOffsetPair *) realloc (data,
+        new_data = (Xi18nAtomOffsetPair *) realloc (data,
                 offset_cache->capacity * sizeof (Xi18nAtomOffsetPair));
-        if (offset_cache->data == NULL) {
-            offset_cache->data = data;
+        if (new_data == NULL) {
             --offset_cache->size;
+            return;
         }
-        data = offset_cache->data;
+        offset_cache->data = new_data;
+        data = new_data;
     }
 
     if (offset_cache->size > 0) {
