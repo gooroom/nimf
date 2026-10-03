@@ -1,3 +1,9 @@
+nimf (2024.05.27+grm5u2) gooroom-5.0; urgency=medium
+
+  * [#1432] Bound-check the cursor in hanja lookup.
+
+ -- jongkyung.woo <jkwoo@gooroom.kr>  Sat, 03 Oct 2026 18:40:16 +0900
+
 nimf (2024.05.27+grm5u1) gooroom-5.0; urgency=medium
 
   * local package: Release for gooroom-5.0
